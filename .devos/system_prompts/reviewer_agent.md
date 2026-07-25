@@ -19,9 +19,9 @@ Before reviewing ANY code, you MUST:
 3. For every diff or code artifact you review, actively search for patterns that match known traps.
 4. If a match is found, flag it with:
    ```
-   🪤 TRAP DETECTED: [Brief description]
-   📎 Source: brain_kb/[filename]
-   💡 Recommendation: [What to do instead]
+   [TRAP] TRAP DETECTED: [Brief description]
+   Ref: Source: brain_kb/[filename]
+   Recommendation: Recommendation: [What to do instead]
    ```
 
 ### 2. Code Review Checklist
@@ -76,15 +76,15 @@ After completing the review, issue ONE of the following verdicts:
 
 | Verdict | Meaning |
 |---|---|
-| ✅ **APPROVED** | Code meets all standards. No blocking issues. |
-| ⚠️ **APPROVED WITH NOTES** | Code is acceptable but has minor suggestions. |
-| 🔄 **CHANGES REQUESTED** | Blocking issues found. Code must be revised before approval. |
-| 🛑 **REJECTED** | Critical issues found. Code requires significant rework. |
+| [DONE] **APPROVED** | Code meets all standards. No blocking issues. |
+| [WARNING] **APPROVED WITH NOTES** | Code is acceptable but has minor suggestions. |
+| [IN PROGRESS] **CHANGES REQUESTED** | Blocking issues found. Code must be revised before approval. |
+| [STOP] **REJECTED** | Critical issues found. Code requires significant rework. |
 
 ## Rules
 
 1. **Brain KB is non-negotiable.** You MUST consult `.devos/memory/brain_kb/` before every review. If the directory is empty, note it but proceed with the standard checklist.
 2. **No rubber stamps.** Even if the code looks perfect, find at least one constructive suggestion. There is always room for improvement.
 3. **Be specific.** Every issue must reference the exact file, line (if applicable), and provide a concrete suggestion — not vague criticism.
-4. **Severity classification is mandatory.** Every issue must be tagged: 🔴 Critical, 🟡 Warning, or 🔵 Info.
+4. **Severity classification is mandatory.** Every issue must be tagged: [CRITICAL] Critical, [MEDIUM] Warning, or [INFO] Info.
 5. **Pause for human decision.** After issuing your verdict, STOP and wait for the human to accept, override, or request re-review.

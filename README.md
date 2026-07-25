@@ -1,5 +1,5 @@
 <p align="center">
-  <h1 align="center">🧠 DevOS</h1>
+  <h1 align="center">DevOS</h1>
   <p align="center"><strong>The AI-Agnostic Agentic Development Framework</strong></p>
   <p align="center">
     A filesystem-first operating system for LLM-powered autonomous development.<br/>
@@ -38,12 +38,12 @@ When an AI opens this repository, it is **automatically redirected** to the Orch
 
 | Principle | Description |
 |---|---|
-| 🗂️ **Filesystem First** | State, memory, and rules live in files — not in conversation history. Survives session resets. |
-| 🤖 **AI-Agnostic** | Works with Claude, Gemini, GPT, Cursor, Windsurf, Copilot — any LLM that reads project files. |
-| 🧑‍✈️ **Persona-Based** | Three distinct AI personas (Orchestrator, Planner, Reviewer) with isolated responsibilities. |
-| 🛑 **Human-in-the-Loop** | Every major phase transition requires explicit human approval. No autonomous runaway. |
-| 🧠 **Accumulative Memory** | Lessons learned and gotchas are persisted in the Brain KB, making the system smarter over time. |
-| 📄 **Zero Code** | The entire framework is Markdown, YAML, and JSON. No Python, no Node.js, no bash scripts. |
+| **Filesystem First** | State, memory, and rules live in files — not in conversation history. Survives session resets. |
+| **AI-Agnostic** | Works with Claude, Gemini, GPT, Cursor, Windsurf, Copilot — any LLM that reads project files. |
+| **Persona-Based** | Three distinct AI personas (Orchestrator, Planner, Reviewer) with isolated responsibilities. |
+| [STOP] **Human-in-the-Loop** | Every major phase transition requires explicit human approval. No autonomous runaway. |
+| **Accumulative Memory** | Lessons learned and gotchas are persisted in the Brain KB, making the system smarter over time. |
+| **Zero Code** | The entire framework is Markdown, YAML, and JSON. No Python, no Node.js, no bash scripts. |
 
 ---
 
@@ -55,9 +55,9 @@ When an AI opens this repository, it is **automatically redirected** to the Orch
 ├── .devosignore                # Patterns to exclude from AI discovery
 ├── mcps.json                   # MCP server configuration (extensible)
 ├── system_prompts/
-│   ├── orchestrator.md         # 🎯 Maestro — boots, routes, enforces rules
-│   ├── planner_agent.md        # 📐 Planner — epics, tasks, risk assessment
-│   └── reviewer_agent.md       # 🔍 Reviewer — code review, brain KB cross-reference
+│   ├── orchestrator.md         # Maestro — boots, routes, enforces rules
+│   ├── planner_agent.md        # Planner — epics, tasks, risk assessment
+│   └── reviewer_agent.md       # Reviewer — code review, brain KB cross-reference
 ├── workflows/
 │   ├── start_workflow.md       # Context ingestion → draft artifact → HITL gate
 │   └── dev_workflow.md         # 6-phase development lifecycle
@@ -107,18 +107,18 @@ Ready for commands.
  Consult Brain KB                   Phase 3: Planning (Planner Agent)
      │                              Break into epics & tasks
      ▼                                      │
- Generate Draft                     🛑 HITL Gate — approve plan
+ Generate Draft                     [STOP] HITL Gate — approve plan
  (memory/state/draft_YYMMDD.md)             │
      │                              Phase 4: Execution
      ▼                              Write code iteratively
- 🛑 HITL Gate                               │
+ [STOP] HITL Gate                           │
  Wait for human approval           Phase 5: Review (Reviewer Agent)
                                     Cross-ref with brain_kb
                                             │
                                     Phase 6: Brain Sync
                                     Persist lessons → brain_kb/
                                             │
-                                        ✅ Done
+                                        [DONE] Done
 ```
 
 ---
@@ -137,13 +137,13 @@ Ready for commands.
 
 ## Personas
 
-### 🎯 Orchestrator
+### Orchestrator
 The central intelligence. Routes tasks, enforces rules, manages phase transitions, and invokes sub-personas as needed. Never writes code directly unless instructed.
 
-### 📐 Planner Agent
+### Planner Agent
 Strategic thinker. Decomposes features into epics and tasks with risk assessments. Maps multi-repository dependencies. Updates YAML frontmatter to track planning state.
 
-### 🔍 Reviewer Agent
+### Reviewer Agent
 Insufferably meticulous Senior Code Reviewer. Runs a comprehensive checklist (correctness, security, performance, maintainability, architecture) and **must cross-reference all code against the Brain KB** for known traps before issuing a verdict.
 
 ---

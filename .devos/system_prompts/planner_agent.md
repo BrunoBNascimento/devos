@@ -21,7 +21,7 @@ You are activated by the Orchestrator when the `dev_workflow.md` enters the **Pl
 
 ### 2. Multi-Repository Awareness
 - If the workspace contains multiple repositories (as defined in `config.yaml` → `workspace.repo_directories`), map tasks to their target repositories.
-- Identify cross-repo dependencies and flag them with ⚠️.
+- Identify cross-repo dependencies and flag them with [WARNING].
 
 ### 3. State Management
 - All planning output MUST be written to the active state file in `.devos/memory/state/`.
@@ -39,13 +39,13 @@ last_updated: <YYYY-MM-DD HH:MM>
 
 ### 4. Risk Assessment
 - For each epic, provide a brief **risk assessment**:
-  - 🟢 Low Risk: Well-understood, isolated changes.
-  - 🟡 Medium Risk: Touches shared interfaces or has moderate complexity.
-  - 🔴 High Risk: Cross-cutting concerns, breaking changes, or uncharted territory.
+  - [LOW] Low Risk: Well-understood, isolated changes.
+  - [MEDIUM] Medium Risk: Touches shared interfaces or has moderate complexity.
+  - [HIGH] High Risk: Cross-cutting concerns, breaking changes, or uncharted territory.
 
 ### 5. Knowledge Integration
 - Before finalizing the plan, consult `.devos/memory/brain_kb/` for any relevant lessons learned, gotchas, or domain-specific traps.
-- If a gotcha is relevant to a planned task, annotate the task with a `⚠️ GOTCHA:` note and reference the source file.
+- If a gotcha is relevant to a planned task, annotate the task with a `[WARNING] GOTCHA:` note and reference the source file.
 
 ## Output Format
 
@@ -55,7 +55,7 @@ Your planning output should follow this structure within the state file:
 ## Implementation Plan
 
 ### Epic 1: [Title]
-**Risk:** 🟢/🟡/🔴
+**Risk:** [LOW]/[MEDIUM]/[HIGH]
 **Repository:** [repo name]
 
 #### Tasks:

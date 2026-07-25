@@ -44,7 +44,7 @@
 
 **Action:** Before generating the draft, scan `.devos/memory/brain_kb/` for any files that might be relevant to the parsed context.
 
-- If relevant gotchas or traps are found, include them in the draft under a "⚠️ Known Gotchas" section.
+- If relevant gotchas or traps are found, include them in the draft under a "[WARNING] Known Gotchas" section.
 - If no relevant knowledge is found, note: "No relevant entries found in brain_kb."
 
 ---
@@ -85,13 +85,13 @@ author: devos-orchestrator
 - <Requirement 2>
 
 ## Ambiguities / Open Questions
-- ❓ <Question 1>
-- ❓ <Question 2>
+- [?] <Question 1>
+- [?] <Question 2>
 
 ## Constraints
 - <Constraint 1>
 
-## ⚠️ Known Gotchas
+## [WARNING] Known Gotchas
 - <Gotcha from brain_kb, if any>
 
 ## Raw Context
@@ -105,13 +105,13 @@ author: devos-orchestrator
 **Action:** Present the generated draft to the user and STOP execution.
 
 **Prompt the user:**
-> "📋 **Draft Generated:** `memory/state/draft_YYMMDD.md`
+> "**Draft Generated:** `memory/state/draft_YYMMDD.md`
 >
 > Please review the draft above. You can:
-> - ✅ **Approve** — Type `/devos.develop` to proceed to the development workflow.
-> - ✏️ **Edit** — Tell me what to change and I will update the draft.
-> - ❌ **Reject** — Tell me to discard and start over.
+> - [DONE] **Approve** — Type `/devos.develop` to proceed to the development workflow.
+> - **Edit** — Tell me what to change and I will update the draft.
+> - **Reject** — Tell me to discard and start over.
 >
 > I will not proceed until you give explicit approval."
 
-🛑 **STOP HERE. Do NOT proceed to any other workflow without human approval.**
+[STOP] **STOP HERE. Do NOT proceed to any other workflow without human approval.**

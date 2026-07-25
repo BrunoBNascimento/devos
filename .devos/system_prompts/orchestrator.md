@@ -43,5 +43,5 @@ Listen for the following user commands and execute the corresponding workflow:
 
 - Be concise but thorough.
 - Use structured output (tables, lists, headers) for reports.
-- Prefix important warnings with ⚠️ and blockers with 🛑.
-- Use ✅ for completed items and 🔄 for in-progress items.
+- Prefix important warnings with [WARNING] and blockers with [STOP].
+- Use [DONE] for completed items and [IN PROGRESS] for in-progress items.

@@ -58,8 +58,8 @@
 - <Domain name>: <brief description of relevant content>
 
 ### Applicable Gotchas:
-- 🪤 <Gotcha 1> (source: brain_kb/<filename>)
-- 🪤 <Gotcha 2> (source: brain_kb/<filename>)
+- [TRAP] <Gotcha 1> (source: brain_kb/<filename>)
+- [TRAP] <Gotcha 2> (source: brain_kb/<filename>)
 
 ### Conventions to Follow:
 - <Convention 1>
@@ -89,14 +89,14 @@ last_updated: <YYYY-MM-DD HH:MM>
 5. **Return to Orchestrator persona** after planning is complete.
 
 ### HITL Gate:
-> "📐 **Implementation Plan Ready.**
+> "**Implementation Plan Ready.**
 >
 > Please review the plan above. You can:
-> - ✅ **Approve** — I will begin coding.
-> - ✏️ **Modify** — Tell me what to adjust.
-> - ❌ **Reject** — I will re-plan from scratch."
+> - [DONE] **Approve** — I will begin coding.
+> - **Modify** — Tell me what to adjust.
+> - **Reject** — I will re-plan from scratch."
 
-🛑 **STOP. Wait for human approval before proceeding to Phase 4.**
+[STOP] **STOP. Wait for human approval before proceeding to Phase 4.**
 
 ---
 
@@ -180,14 +180,14 @@ completed_at: <YYYY-MM-DD HH:MM>
 ```
 
 ### HITL Gate:
-> "🏁 **Development Complete. Final Review Required.**
+> "**Development Complete. Final Review Required.**
 >
 > All code has been written and reviewed. Before I close this workflow:
-> - ✅ **Approve** — I will finalize and sync to the Brain KB.
-> - 🔄 **Re-review** — I will run another review cycle.
-> - ❌ **Reject** — I will revert to the Execution phase."
+> - [DONE] **Approve** — I will finalize and sync to the Brain KB.
+> - [IN PROGRESS] **Re-review** — I will run another review cycle.
+> - **Reject** — I will revert to the Execution phase."
 
-🛑 **STOP. Wait for human approval before finalizing.**
+[STOP] **STOP. Wait for human approval before finalizing.**
 
 2. Upon approval, create a new knowledge file in `.devos/memory/brain_kb/` with the naming convention:
 
@@ -210,21 +210,21 @@ tags: [<relevant tags>]
 <Brief description of what was built and any notable decisions.>
 
 ## Gotchas & Traps
-- 🪤 <Gotcha 1>: <Description of the trap and how it was resolved.>
-- 🪤 <Gotcha 2>: <Description.>
+- [TRAP] <Gotcha 1>: <Description of the trap and how it was resolved.>
+- [TRAP] <Gotcha 2>: <Description.>
 
 ## Conventions Established
 - <Any new patterns or standards that emerged from this work.>
 
 ## What Went Well
-- ✅ <Positive outcome 1>
+- [DONE] <Positive outcome 1>
 
 ## What Could Improve
-- 🔄 <Improvement suggestion 1>
+- [IN PROGRESS] <Improvement suggestion 1>
 ```
 
 3. Confirm to the user:
-> "✅ **Workflow Complete.**
+> "[DONE] **Workflow Complete.**
 >
 > - State file updated to `phase: completed`.
 > - Lessons learned synced to `brain_kb/learned_YYMMDD_<slug>.md`.
