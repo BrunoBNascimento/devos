@@ -370,7 +370,7 @@ last_updated: <YYYY-MM-DD HH:MM>
 #### 7.2 — Push Branch
 
 ```
-git push origin <branch_name>
+git push -u origin <branch_name>
 ```
 
 #### 7.3 — Generate PR Body
