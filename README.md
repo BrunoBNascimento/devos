@@ -199,11 +199,18 @@ The Reviewer Agent **must consult the Brain KB** before every code review, ensur
    git clone https://github.com/BrunoBNascimento/devos.git
    ```
 
-2. **Open with any AI-enabled editor** (Cursor, Windsurf, VS Code + Copilot, etc.)
+2. **Setup Configurations**:
+   Copy the example configuration files and update them if necessary (especially `mcps.json` if using tokens):
+   ```bash
+   cp .devos/config.example.yaml .devos/config.yaml
+   cp .devos/mcps.example.json .devos/mcps.json
+   ```
 
-3. **The AI will automatically boot as the DevOS Orchestrator**
+3. **Open with any AI-enabled editor** (Cursor, Windsurf, VS Code + Copilot, etc.)
 
-4. **Type `/devos.start`** to begin your first session
+4. **The AI will automatically boot as the DevOS Orchestrator**
+
+5. **Type `/devos.start`** to begin your first session
 
 ---
 
