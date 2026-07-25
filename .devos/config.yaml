@@ -7,10 +7,39 @@ workspace:
 
 knowledge_system:
   router_enabled: true
-  domains:
-    - name: "General Rules"
+
+  knowledge_bases:
+    github:
+      priority: 1.0
       path: ".devos/memory/brain_kb/"
-      description: "Permanent memory of gotchas, traps, and lessons learned by the team."
+      description: "Repository-level knowledge extracted from GitHub issues, PRs, and discussions."
+
+    jira:
+      priority: 0.9
+      path: ".devos/memory/brain_kb/"
+      description: "Project management context from Jira tickets, epics, and sprint retrospectives."
+
+    business_rules:
+      priority: 1.2
+      path: ".devos/memory/brain_kb/"
+      description: "Domain-specific business rules, regulatory constraints, and invariants that must never be violated."
+
+    kb_name_1:
+      priority: 0.4
+      path: ".devos/memory/brain_kb/"
+      description: "Low-priority supplemental knowledge base. Rename and configure as needed."
+
+  fusion:
+    algorithm: weighted_rrf # Weighted Reciprocal Rank Fusion — merges results across KBs respecting priority weights
+
+  reranker:
+    model: bge-reranker-large # Cross-encoder reranker applied after fusion to refine final ordering
+
+  retrieval:
+    top_k_per_kb: 15 # Maximum chunks retrieved per knowledge base before fusion
+
+  context:
+    final_chunks: 12 # Maximum chunks injected into the working context after fusion + reranking
 
 paths:
   prompts: ".devos/system_prompts/"

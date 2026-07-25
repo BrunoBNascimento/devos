@@ -37,34 +37,85 @@
 
 ---
 
-## Phase 2: Knowledge Router
+## Phase 2: Knowledge Router (Retrieval Pipeline)
 
-**Objective:** Consult the knowledge system to inform development decisions.
+**Objective:** Execute the structured knowledge retrieval pipeline defined in `config.yaml` to build an informed context for development.
 
 ### Actions:
 
-1. Read `knowledge_system.domains` from `config.yaml`.
-2. For each domain, read its `path` and scan for relevant files.
-3. Based on the current task context (from the draft artifact), determine which knowledge domains are relevant.
-4. Load relevant knowledge files and extract:
-   - **Conventions**: Coding standards, naming rules, architectural patterns.
-   - **Gotchas**: Known traps, common mistakes, edge cases.
-   - **Lessons Learned**: Past decisions and their outcomes.
-5. Compile a **Knowledge Brief** appended to the state file:
+#### 2.1 — Enumerate Knowledge Bases
+
+Read `knowledge_system.knowledge_bases` from `config.yaml`. Build a ranked list of all configured KBs sorted by `priority` (descending). Higher priority KBs have greater influence on the final context.
+
+| Config Key | What It Controls |
+|---|---|
+| `knowledge_bases.<name>.priority` | Weight applied during fusion. `business_rules` at 1.2 outranks `kb_name_1` at 0.4. |
+| `retrieval.top_k_per_kb` | Max chunks retrieved per KB before fusion (default: 15). |
+| `fusion.algorithm` | Merge strategy across KBs (default: `weighted_rrf`). |
+| `reranker.model` | Cross-encoder model for post-fusion reranking (default: `bge-reranker-large`). |
+| `context.final_chunks` | Max chunks in final working context (default: 12). |
+
+#### 2.2 — Retrieve Per-KB Chunks
+
+For each knowledge base, scan its `path` directory and retrieve up to `retrieval.top_k_per_kb` chunks most relevant to the current task context (derived from the draft artifact's Title, Summary, Scope, and Type).
+
+Relevance criteria:
+- **Semantic match** between task context and chunk content.
+- **Recency** — more recent entries break ties.
+- **Specificity** — chunks that mention the same tech stack, module, or domain detected in Phase 1 Discovery are preferred.
+
+#### 2.3 — Fusion (Weighted RRF)
+
+Merge all per-KB results using the `fusion.algorithm` from config.
+
+For `weighted_rrf` (Weighted Reciprocal Rank Fusion), compute:
+
+```
+fused_score(chunk) = SUM over all KBs where chunk appears:
+    kb.priority * (1 / (rank_in_kb + 60))
+```
+
+This ensures high-priority KBs (e.g., `business_rules` at 1.2) dominate the ranking, while low-priority KBs (e.g., `kb_name_1` at 0.4) only surface when their content is exceptionally relevant.
+
+Sort all chunks by `fused_score` descending.
+
+#### 2.4 — Rerank
+
+Apply the cross-encoder reranker specified in `reranker.model` over the top fused results. The reranker evaluates each chunk against the full query context (not just keywords), producing a refined relevance score.
+
+This step corrects cases where lexical overlap inflated a chunk's rank during retrieval.
+
+#### 2.5 — Select Final Context
+
+Truncate to `context.final_chunks` (default: 12). These chunks become the **Knowledge Brief** — the authoritative context for all downstream phases (Planning, Execution, Review).
+
+#### 2.6 — Compile Knowledge Brief
+
+Append the following to the state file:
 
 ```markdown
 ## Knowledge Brief
-### Relevant Domains:
-- <Domain name>: <brief description of relevant content>
+
+### Retrieval Pipeline Summary
+- **KBs Consulted:** <list of KB names and their priorities>
+- **Chunks Retrieved:** <total across all KBs>
+- **Post-Fusion Candidates:** <count after RRF>
+- **Final Context Chunks:** <count after reranking, capped at final_chunks>
 
 ### Applicable Gotchas:
-- [TRAP] <Gotcha 1> (source: brain_kb/<filename>)
-- [TRAP] <Gotcha 2> (source: brain_kb/<filename>)
+- [TRAP] <Gotcha 1> (source: <kb_name>/<filename>, priority: <weight>)
+- [TRAP] <Gotcha 2> (source: <kb_name>/<filename>, priority: <weight>)
 
 ### Conventions to Follow:
-- <Convention 1>
-- <Convention 2>
+- <Convention 1> (source: <kb_name>/<filename>)
+- <Convention 2> (source: <kb_name>/<filename>)
+
+### Business Rules (Non-Negotiable):
+- <Rule 1> (source: business_rules/<filename>)
+- <Rule 2> (source: business_rules/<filename>)
 ```
+
+If no relevant knowledge is found across any KB, note: "No relevant entries found across configured knowledge bases. Proceeding with general best practices."
 
 ---
 

@@ -40,12 +40,55 @@
 
 ---
 
-## Step 3: Consult Knowledge Base
+## Step 3: Consult Knowledge Bases (Retrieval Pipeline)
 
-**Action:** Before generating the draft, scan `.devos/memory/brain_kb/` for any files that might be relevant to the parsed context.
+**Action:** Before generating the draft, execute the full knowledge retrieval pipeline defined in `config.yaml` under `knowledge_system`.
 
-- If relevant gotchas or traps are found, include them in the draft under a "[WARNING] Known Gotchas" section.
-- If no relevant knowledge is found, note: "No relevant entries found in brain_kb."
+### 3.1 — Enumerate Knowledge Bases
+
+Read `knowledge_system.knowledge_bases` from `config.yaml`. For each KB entry, note its `priority` weight. Higher priority KBs contribute more heavily to the final context.
+
+Example from config:
+| Knowledge Base | Priority | Interpretation |
+|---|---|---|
+| `business_rules` | 1.2 | Highest weight — domain invariants, never skip |
+| `github` | 1.0 | Standard weight — repo-level knowledge |
+| `jira` | 0.9 | Slightly lower — project management context |
+| `kb_name_1` | 0.4 | Low weight — supplemental, only surfaces if highly relevant |
+
+### 3.2 — Retrieve Chunks Per KB
+
+For each knowledge base, scan its `path` directory and retrieve up to `retrieval.top_k_per_kb` (default: 15) chunks most relevant to the parsed context from Step 2.
+
+Relevance is determined by semantic similarity between:
+- The parsed **Title**, **Summary**, **Scope**, and **Type** from Step 2.
+- The content of each file in the KB directory.
+
+### 3.3 — Fusion (Weighted RRF)
+
+Merge results from all KBs using the `fusion.algorithm` specified in config (default: `weighted_rrf` — Weighted Reciprocal Rank Fusion).
+
+For each chunk, compute its fused score:
+```
+fused_score(chunk) = SUM over all KBs where chunk appears:
+    kb.priority * (1 / (rank_in_kb + 60))
+```
+
+Sort all chunks by `fused_score` descending.
+
+### 3.4 — Rerank
+
+Apply the reranker model specified in `reranker.model` (default: `bge-reranker-large`) as a cross-encoder pass over the fused results. This refines ordering by evaluating each chunk against the full query context, not just keyword overlap.
+
+### 3.5 — Select Final Context
+
+Truncate to `context.final_chunks` (default: 12) chunks. These are the knowledge entries that will be injected into the draft.
+
+### 3.6 — Output
+
+- If relevant gotchas or traps are found, include them in the draft under a "[WARNING] Known Gotchas" section, annotated with the source KB and file.
+- If no relevant knowledge is found across any KB, note: "No relevant entries found across configured knowledge bases."
+- In the draft, add a `## Retrieval Metadata` section documenting which KBs were consulted and how many chunks each contributed.
 
 ---
 
