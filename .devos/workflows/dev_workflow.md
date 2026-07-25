@@ -266,9 +266,9 @@ Append to the state file:
 
 ---
 
-## Phase 6: Self-Review + Instrumentation Audit
+## Phase 6: Self-Review + Instrumentation Audit + Documentation Verification
 
-**Objective:** Assume the Reviewer persona and perform a full code review including instrumentation compliance. This is an autonomous loop — no human gate. If issues are found, loop back to fix and re-verify.
+**Objective:** Assume the Reviewer persona and perform a full code review including instrumentation compliance and documentation verification. This is an autonomous loop -- no human gate. If issues are found, loop back to fix and re-verify.
 
 ### Actions:
 
@@ -308,9 +308,32 @@ Read `verification.instrumentation.checks` from `config.yaml`. For each enabled 
 | security        | PASS / FAIL | <specifics>                                |
 ```
 
-#### 6.4 — Verdict and Loop
+#### 6.4 -- Documentation Verification
 
-Issue a verdict based on the combined code review and instrumentation audit:
+Read `verification.documentation` from `config.yaml`. If `enabled: true`:
+
+1. For each file listed in `documentation.files`:
+   a. Check if the file exists in the workspace.
+   b. If it exists, evaluate whether the code changes from Phase 4 require updates to this file based on its `rule`.
+   c. If updates are needed and `auto_update: true`, make the changes directly.
+   d. If updates are needed and `auto_update: false`, flag for manual update.
+2. Commit documentation changes using `documentation.commit_message`.
+3. Report:
+
+```markdown
+## Documentation Verification
+| File          | Status                  | Action Taken                |
+|---------------|-------------------------|-----------------------------||
+| README.md     | UPDATED / NO CHANGE / MISSING | <description>          |
+| CLAUDE.md     | UPDATED / NO CHANGE / MISSING | <description>          |
+| agents.md     | UPDATED / NO CHANGE / MISSING | <description>          |
+| CHANGELOG.md  | UPDATED / NO CHANGE / MISSING | <description>          |
+| API.md        | UPDATED / NO CHANGE / MISSING | <description>          |
+```
+
+#### 6.5 — Verdict and Loop
+
+Issue a verdict based on the combined code review, instrumentation audit, and documentation verification:
 
 - **APPROVED** — All checks pass. Proceed to Phase 7.
 - **CHANGES REQUESTED** — Issues found. Apply fixes autonomously:
@@ -325,7 +348,7 @@ Issue a verdict based on the combined code review and instrumentation audit:
 
 After APPROVED:
 - **Return to Orchestrator persona.**
-- Append the review verdict and instrumentation audit to the state file.
+- Append the review verdict, instrumentation audit, and documentation verification to the state file.
 
 ---
 
@@ -364,22 +387,32 @@ Read `pull_request.body_sections` from `config.yaml`. For each section, extract 
 | `knowledge_brief_excerpt` | Gotchas, conventions, and business rules that were applied |
 | `jira_link` | Link to the source Jira ticket: `<jira.base_url>/browse/<jira_key>` |
 
-#### 7.4 — Create Pull Request
+#### 7.4 — Create Pull Request (Strategy Detection)
 
-Read `pull_request` config and execute:
+Read `pull_request.strategy` from `config.yaml`. Resolve the delivery method:
+
+**If strategy is `auto`, detect in this order:**
+
+| Priority | Check | Method | Command |
+|---|---|---|---|
+| 1 | MCP GitHub server configured and enabled in `mcps.json` | `mcp_github` | Use GitHub MCP API to create PR |
+| 2 | MCP GitLab server configured and enabled in `mcps.json` | `mcp_gitlab` | Use GitLab MCP API to create MR |
+| 3 | `gh` CLI installed and authenticated (`gh auth status`) | `gh_cli` | `gh pr create --base <base> --head <branch> --title "<title>" --body "<body>" --reviewer <reviewers> --label <labels>` |
+| 4 | `glab` CLI installed and authenticated | `glab_cli` | `glab mr create --source-branch <branch> --target-branch <base> --title "<title>" --description "<body>"` |
+| 5 | None of the above | `local_compare` | Push branch and output compare URL for user |
+
+**If strategy is explicitly set** (`gh_cli`, `mcp_github`, `mcp_gitlab`, `local_compare`), use that method directly.
+
+**Fallback (`local_compare`) output:**
 
 ```
-gh pr create \
-  --base <pull_request.base_branch> \
-  --head <branch_name> \
-  --title "<rendered title_template>" \
-  --body "<generated PR body>" \
-  --reviewer <reviewers> \
-  --label <labels> \
-  [--draft if pull_request.draft: true]
+Branch pushed. Create the PR manually:
+
+  GitHub:  https://github.com/<owner>/<repo>/compare/<base>...<branch>
+  GitLab:  https://gitlab.com/<owner>/<repo>/-/merge_requests/new?source_branch=<branch>
 ```
 
-Capture the PR URL from the output.
+Capture the PR/MR URL from the output (or from the compare URL if using fallback).
 
 #### 7.5 — Link External Systems
 

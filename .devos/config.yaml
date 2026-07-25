@@ -163,6 +163,22 @@ verification:
     enabled: false                       # Enable for TypeScript / typed languages
     command: "npx tsc --noEmit"
 
+  documentation:
+    enabled: true
+    auto_update: true                    # Automatically update docs based on code changes
+    files:                               # Project documentation files to verify and update
+      - path: "README.md"
+        rule: "Ensure README reflects any new features, changed APIs, or updated setup instructions."
+      - path: "CLAUDE.md"
+        rule: "Update project-level AI instructions if new modules, conventions, or gotchas were introduced."
+      - path: "docs/agents.md"
+        rule: "If new agent personas or workflows were added, document them here."
+      - path: "CHANGELOG.md"
+        rule: "Append a new entry following Keep a Changelog format for all user-facing changes."
+      - path: "API.md"
+        rule: "If API endpoints were added or modified, update the API documentation."
+    commit_message: "docs(<scope>): update documentation to reflect recent changes"
+
   instrumentation:
     enabled: true
     checks:
@@ -181,24 +197,32 @@ verification:
 # PULL REQUEST — Auto-creation and formatting
 # ---------------------------------------------------------------------------
 pull_request:
-  auto_create: true                      # Create PR automatically after verification passes
-  draft: false                           # Create as draft PR
-  base_branch: "main"                    # Target branch (overrides git.base_branch if set)
-  title_template: "[<jira_key>] <title>" # PR title template
-  # Available tokens: <jira_key>, <title>, <type>, <date>
-  body_sections:                         # Sections to include in the auto-generated PR body
-    - "summary"                          # From draft artifact Summary
-    - "changes_made"                     # List of files changed with descriptions
-    - "implementation_plan"              # Condensed plan from Phase 3
-    - "testing_done"                     # Test results and coverage from verification
-    - "instrumentation_checklist"        # Instrumentation compliance report
-    - "knowledge_brief_excerpt"          # Relevant gotchas and conventions applied
-    - "jira_link"                        # Link back to the source Jira ticket
-  reviewers: []                          # GitHub usernames to request review from
-  team_reviewers: []                     # GitHub team slugs to request review from
-  labels: ["devos-generated"]            # Labels to apply to the PR
-  link_jira: true                        # Auto-link Jira ticket in PR body and transition ticket status
-  jira_transition_on_pr: "In Review"     # Jira status to transition to when PR is created
+  auto_create: true
+  strategy: auto                         # "auto" (detect best method), "gh_cli", "mcp_github", "mcp_gitlab", "local_compare"
+  # Strategy resolution order for "auto":
+  #   1. Check if MCP GitHub/GitLab server is configured and enabled in mcps.json -> use MCP API
+  #   2. Check if `gh` CLI is installed and authenticated -> use `gh pr create`
+  #   3. Check if `glab` CLI is installed -> use `glab mr create`
+  #   4. Fallback: push branch, output compare URL for user to open manually
+  #      GitHub:  https://github.com/<owner>/<repo>/compare/<base>...<branch>
+  #      GitLab:  https://gitlab.com/<owner>/<repo>/-/merge_requests/new?source_branch=<branch>
+  draft: false
+  base_branch: "main"
+  title_template: "[<jira_key>] <title>"
+  body_sections:
+    - "summary"
+    - "changes_made"
+    - "implementation_plan"
+    - "testing_done"
+    - "instrumentation_checklist"
+    - "documentation_updates"
+    - "knowledge_brief_excerpt"
+    - "jira_link"
+  reviewers: []
+  team_reviewers: []
+  labels: ["devos-generated"]
+  link_jira: true
+  jira_transition_on_pr: "In Review"
 
 paths:
   prompts: ".devos/system_prompts/"
