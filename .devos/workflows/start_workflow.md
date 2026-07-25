@@ -13,17 +13,94 @@
 
 ## Step 1: Gather Context
 
-**Action:** Ask the user to provide the input context. Accepted formats:
+**Action:** Read `integrations` from `config.yaml` and actively pull context from all enabled sources before prompting the user.
+
+### 1.1 — Automated Context Ingestion
+
+For each integration where `enabled: true`, execute the corresponding ingestion routine:
+
+#### Jira
+
+Read `integrations.jira` from config. If enabled:
+
+1. Connect via the auth method specified (`MCP`, `ENV`, or `TOKEN`).
+2. Query each board listed under `boards` (by `id`).
+3. Apply the configured `filters`:
+   - Only tickets with `status` matching the configured list (e.g., "To Do", "In Progress", "In Review").
+   - If `labels` is non-empty, restrict to those labels.
+   - If `assignee` is `"current_user"`, filter to tickets assigned to the authenticated user.
+4. Limit the time window to the last `lookback_days` (default: 14 days).
+5. If `include_comments: true`, pull ticket comments alongside the description.
+6. Cap results at `max_tickets` (default: 25).
+7. Store ingested tickets in working memory with their key, title, status, and description.
+
+#### Slack
+
+Read `integrations.slack` from config. If enabled:
+
+1. Connect via the auth method specified.
+2. For each channel listed under `channels` (by `id`):
+   - Pull messages from the last `lookback_days` (default: 7 days).
+   - If `thread_depth` is `"full"`, include all thread replies. If `"top_only"`, only parent messages. If an integer, cap replies at that number.
+   - Cap at `max_messages_per_channel` (default: 100) per channel.
+3. Use the channel `purpose` field to weight relevance during later retrieval steps.
+4. If `include_files: true`, parse file attachments shared in messages.
+5. Store ingested messages with channel name, timestamp, author, and content.
+
+#### Meeting Notes / Transcripts
+
+Read `integrations.meeting_notes` from config. If enabled:
+
+1. For each provider where `enabled: true`:
+   - **google_meet / otter_ai**: Connect via MCP and pull transcripts from the last `lookback_days` (default: 30 days).
+   - **manual**: Scan the `watch_path` directory (default: `.devos/memory/transcripts/`) for `.md` files.
+2. Apply `filters.keywords` — if non-empty, only include transcripts containing at least one keyword.
+3. Apply `filters.participants` — if non-empty, only include transcripts where at least one listed participant was present.
+4. Cap at `max_transcripts` (default: 10).
+5. Store ingested transcripts with date, participants, and content.
+
+#### GitHub
+
+Read `integrations.github` from config. If enabled:
+
+1. Connect via MCP.
+2. For each repository listed under `repositories` (by `owner/repo`):
+   - If `sources.issues: true`, pull open and recently updated issues from the last `lookback_days` (default: 14 days).
+   - If `sources.pull_requests: true`, pull open PRs and their review comments.
+   - If `sources.discussions: true`, pull recent discussion threads.
+3. Cap at `max_items_per_source` (default: 20) per source type per repository.
+4. Store ingested items with type, title, body, and URL.
+
+### 1.2 — Report Ingestion Results
+
+After all automated ingestion completes, output a summary table:
+
+```
+Integration Ingestion Report:
+| Source          | Status  | Items Pulled | Time Window        |
+|-----------------|---------|--------------|---------------------|
+| Jira            | OK / OFF | <count>     | last <N> days       |
+| Slack           | OK / OFF | <count>     | last <N> days       |
+| Meeting Notes   | OK / OFF | <count>     | last <N> days       |
+| GitHub          | OK / OFF | <count>     | last <N> days       |
+```
+
+If any integration fails (auth error, timeout, etc.), mark it as `FAILED` and log the error, but do NOT halt the workflow. Continue with whatever context was successfully retrieved.
+
+### 1.3 — User-Provided Context
+
+After automated ingestion, prompt the user for any additional context:
 
 | Format | Description |
 |---|---|
 | Free text | User describes the feature, bug, or task directly in chat. |
-| File reference | User points to a file in the repository (e.g., a ticket, spec, or transcript). |
-| Clipboard paste | User pastes raw content (e.g., from Jira, Slack, email). |
+| File reference | User points to a file in the repository (e.g., a spec or design doc). |
+| Clipboard paste | User pastes raw content not captured by integrations. |
 | URL | User provides a link to an external resource (read if accessible). |
+| "None" | User confirms all needed context has been ingested automatically. |
 
 **Prompt the user:**
-> "Please provide the context for this work session. You can describe the task, paste a ticket, reference a file, or share a link. I will process everything into a structured draft."
+> "Context ingestion complete. I pulled data from the integrations above. Do you have any additional context to provide? You can describe the task, paste content, reference a file, or type 'none' if everything is covered."
 
 ---
 

@@ -41,7 +41,83 @@ knowledge_system:
   context:
     final_chunks: 12 # Maximum chunks injected into the working context after fusion + reranking
 
+# ---------------------------------------------------------------------------
+# INTEGRATIONS — External data sources for context ingestion (start_workflow)
+# ---------------------------------------------------------------------------
+integrations:
+
+  jira:
+    enabled: true
+    auth: "MCP"                          # Auth method: MCP (via mcps.json), ENV, or TOKEN
+    base_url: "https://YOUR_ORG.atlassian.net"
+    default_project: "PROJ"              # Default project key when not specified by user
+    boards:                              # Boards to scan for context during /devos.start
+      - id: "BOARD_ID_1"
+        name: "Sprint Board"
+        type: "scrum"
+      - id: "BOARD_ID_2"
+        name: "Kanban Ops"
+        type: "kanban"
+    filters:
+      status: ["To Do", "In Progress", "In Review"]  # Only pull tickets in these statuses
+      labels: []                                       # Optional: filter by labels (empty = all)
+      assignee: "current_user"                         # "current_user", "unassigned", or specific ID
+    lookback_days: 14                    # How far back to look for relevant tickets
+    include_comments: true               # Pull ticket comments for additional context
+    include_attachments: false           # Parse attached files (PDFs, images) — requires MCP support
+    max_tickets: 25                      # Max tickets to retrieve per query
+
+  slack:
+    enabled: true
+    auth: "MCP"
+    channels:                            # Channels to monitor for context
+      - id: "C_CHANNEL_ID_1"
+        name: "#engineering"
+        purpose: "Technical discussions, architecture decisions, incident threads"
+      - id: "C_CHANNEL_ID_2"
+        name: "#product"
+        purpose: "Feature requests, PRD discussions, stakeholder feedback"
+      - id: "C_CHANNEL_ID_3"
+        name: "#alerts"
+        purpose: "Production alerts, error spikes, monitoring notifications"
+    lookback_days: 7                     # How far back to scan messages
+    thread_depth: "full"                 # "full" (all replies), "top_only" (parent messages only), or integer (max replies)
+    include_reactions: false             # Track emoji reactions as signal of importance
+    include_files: false                 # Parse shared files in messages
+    max_messages_per_channel: 100        # Max messages to retrieve per channel
+
+  meeting_notes:
+    enabled: true
+    auth: "MCP"
+    providers:                           # Transcription/note sources
+      - name: "otter_ai"
+        enabled: false
+      - name: "google_meet"
+        enabled: true
+      - name: "manual"                   # User drops .md files in a directory
+        enabled: true
+        watch_path: ".devos/memory/transcripts/"  # Directory for manually placed transcripts
+    lookback_days: 30                    # How far back to search for meeting transcripts
+    filters:
+      keywords: []                       # Optional: only pull transcripts containing these keywords
+      participants: []                   # Optional: filter by participant names
+    max_transcripts: 10                  # Max transcripts to retrieve per query
+
+  github:
+    enabled: true
+    auth: "MCP"
+    repositories:                        # Repos to scan for issues, PRs, and discussions
+      - owner: "YOUR_ORG"
+        repo: "YOUR_REPO"
+    sources:
+      issues: true                       # Scan open/recent issues
+      pull_requests: true                # Scan open/recent PRs and their review comments
+      discussions: true                  # Scan GitHub Discussions
+    lookback_days: 14                    # How far back to scan
+    max_items_per_source: 20             # Max items per source type (issues, PRs, discussions)
+
 paths:
   prompts: ".devos/system_prompts/"
   workflows: ".devos/workflows/"
   state: ".devos/memory/state/"
+
