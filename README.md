@@ -98,26 +98,38 @@ Ready for commands.
 /devos.start                          /devos.develop
      │                                      │
      ▼                                      ▼
- Gather Context                     Phase 1: Discovery
-     │                              Scan workspace structure
-     ▼                                      │
+ Ingest Context (Multi-Source)      Phase 1: Discovery
+ (Jira, Slack, Transcripts, GH)     Scan workspace structure
+     │                                      │
+     ▼                                      ▼
  Parse & Analyze                    Phase 2: Knowledge Router
      │                              Consult brain_kb for gotchas
      ▼                                      │
- Consult Brain KB                   Phase 3: Planning (Planner Agent)
-     │                              Break into epics & tasks
-     ▼                                      │
- Generate Draft                     [STOP] HITL Gate — approve plan
- (memory/state/draft_YYMMDD.md)             │
-     │                              Phase 4: Execution
-     ▼                              Write code iteratively
- [STOP] HITL Gate                           │
- Wait for human approval           Phase 5: Review (Reviewer Agent)
-                                    Cross-ref with brain_kb
+ Cross-Source Correlation           Phase 3: Planning (Planner Agent)
+ (Matrix & Confidence Score)        Break into epics & tasks
+     │                                      │
+     ▼                                      ▼
+ Consult Brain KB                   [STOP] HITL Gate — approve plan
+     │                                      │
+     ▼                                      ▼
+ Generate Draft                     Phase 4: Execution
+ (memory/state/draft_YYMMDD.md)     Write code iteratively
+     │                                      │
+     ▼                                      ▼
+ [STOP] HITL Gate                   Phase 5: Verification
+ Wait for human approval            Compile, lint, test & self-heal
                                             │
-                                    Phase 6: Brain Sync
-                                    Persist lessons → brain_kb/
+                                            ▼
+                                    Phase 6: Review & Finalization
+                                    - Instrumentation Audit
+                                    - Documentation Verification
+                                    - Reviewer Agent Verdict
                                             │
+                                            ▼
+                                    Phase 7: Delivery (PR Strategy)
+                                    Smart detection: MCP, CLI, or compare link
+                                            │
+                                            ▼
                                         [DONE] Done
 ```
 
@@ -127,8 +139,8 @@ Ready for commands.
 
 | Command | Description |
 |---|---|
-| `/devos.start` | Ingest context (tickets, specs, transcripts) and create a structured draft |
-| `/devos.develop` | Execute the full 6-phase development lifecycle |
+| `/devos.start` | Ingest context from all enabled sources (Jira, Slack, Transcripts, GH), correlate signals, and create a draft |
+| `/devos.develop` | Execute the full 7-phase autonomous development lifecycle |
 | `/devos.review` | Trigger a standalone code review using the Reviewer persona |
 | `/devos.status` | Report all state artifacts and their current phase |
 | `/devos.brain` | List and summarize accumulated knowledge in the Brain KB |
