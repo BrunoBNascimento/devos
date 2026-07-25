@@ -116,8 +116,91 @@ integrations:
     lookback_days: 14                    # How far back to scan
     max_items_per_source: 20             # Max items per source type (issues, PRs, discussions)
 
+# ---------------------------------------------------------------------------
+# GIT — Branch, commit, and version control conventions
+# ---------------------------------------------------------------------------
+git:
+  base_branch: "main"                    # Target branch for PRs
+  branch_naming: "devos/<type>/<jira_key>-<short_slug>"  # Template for new branches
+  # Available tokens: <type>, <jira_key>, <short_slug>, <date>
+  # Example output: devos/feature/PROJ-123-user-auth
+  commit_format: "conventional"          # "conventional" (feat:, fix:, etc.), "angular", or "freeform"
+  commit_scope_from: "jira_key"          # Auto-extract commit scope from Jira ticket key
+  auto_stage: true                       # Automatically stage changes after each task
+  sign_commits: false                    # GPG sign commits
+
+# ---------------------------------------------------------------------------
+# VERIFICATION — Build, lint, test, and instrumentation checks
+# ---------------------------------------------------------------------------
+verification:
+  max_loop_iterations: 5                 # Max fix-verify cycles before escalating to human
+
+  build:
+    enabled: true
+    command: "npm run build"             # Build command — adapt to your stack
+    timeout_seconds: 120
+    max_retries: 2                       # Retries on build failure before entering fix cycle
+
+  lint:
+    enabled: true
+    command: "npm run lint"
+    auto_fix: true                       # Attempt auto-fix before reporting errors
+    auto_fix_command: "npm run lint:fix"
+    fail_on_warnings: false              # Treat lint warnings as errors
+
+  tests:
+    enabled: true
+    command: "npm run test"
+    coverage:
+      enabled: true
+      command: "npm run test:coverage"
+      threshold: 80                      # Minimum coverage % to pass
+      fail_below_threshold: true
+    timeout_seconds: 300
+    must_pass: true                      # All tests must pass to proceed
+
+  type_check:
+    enabled: false                       # Enable for TypeScript / typed languages
+    command: "npx tsc --noEmit"
+
+  instrumentation:
+    enabled: true
+    checks:
+      - name: "logging"
+        rule: "All new public functions and API endpoints must include structured logging (entry, exit, error)."
+      - name: "error_handling"
+        rule: "All async operations must have explicit error handling. No unhandled promise rejections. Errors must be logged with context before propagating."
+      - name: "metrics"
+        rule: "Key business operations must emit counters or histograms. Verify metric names follow naming conventions."
+      - name: "tracing"
+        rule: "Distributed tracing spans must be propagated across service boundaries. New spans for significant operations."
+      - name: "security"
+        rule: "No secrets in code. No SQL concatenation. Inputs validated at boundary. Auth checks on protected endpoints."
+
+# ---------------------------------------------------------------------------
+# PULL REQUEST — Auto-creation and formatting
+# ---------------------------------------------------------------------------
+pull_request:
+  auto_create: true                      # Create PR automatically after verification passes
+  draft: false                           # Create as draft PR
+  base_branch: "main"                    # Target branch (overrides git.base_branch if set)
+  title_template: "[<jira_key>] <title>" # PR title template
+  # Available tokens: <jira_key>, <title>, <type>, <date>
+  body_sections:                         # Sections to include in the auto-generated PR body
+    - "summary"                          # From draft artifact Summary
+    - "changes_made"                     # List of files changed with descriptions
+    - "implementation_plan"              # Condensed plan from Phase 3
+    - "testing_done"                     # Test results and coverage from verification
+    - "instrumentation_checklist"        # Instrumentation compliance report
+    - "knowledge_brief_excerpt"          # Relevant gotchas and conventions applied
+    - "jira_link"                        # Link back to the source Jira ticket
+  reviewers: []                          # GitHub usernames to request review from
+  team_reviewers: []                     # GitHub team slugs to request review from
+  labels: ["devos-generated"]            # Labels to apply to the PR
+  link_jira: true                        # Auto-link Jira ticket in PR body and transition ticket status
+  jira_transition_on_pr: "In Review"     # Jira status to transition to when PR is created
+
 paths:
   prompts: ".devos/system_prompts/"
   workflows: ".devos/workflows/"
   state: ".devos/memory/state/"
-

@@ -149,98 +149,247 @@ last_updated: <YYYY-MM-DD HH:MM>
 
 [STOP] **STOP. Wait for human approval before proceeding to Phase 4.**
 
----
-
 ## Phase 4: Execution
 
-**Objective:** Write the actual code, iteratively and incrementally.
+**Objective:** Write code iteratively on a dedicated feature branch with atomic commits.
 
 ### Actions:
+
+#### 4.1 — Create Feature Branch
+
+Read `git` config from `config.yaml`. Create a new branch from `git.base_branch` using the `git.branch_naming` template:
+
+```
+git checkout <git.base_branch>
+git pull origin <git.base_branch>
+git checkout -b <branch_name>
+```
+
+Branch name is derived from the draft artifact:
+- `<type>` — from frontmatter `type` field (feature, bugfix, refactor, etc.)
+- `<jira_key>` — from the linked Jira ticket (if available)
+- `<short_slug>` — kebab-case of the first 4-5 words of the title
+
+Example: `devos/feature/PROJ-123-user-auth-flow`
+
+#### 4.2 — Iterative Development
 
 1. Update the state file YAML frontmatter:
 
 ```yaml
 ---
 phase: developing
+branch: "<branch_name>"
 last_updated: <YYYY-MM-DD HH:MM>
 ---
 ```
 
 2. Work through each task defined in the plan, in dependency order.
 3. For each task:
-   a. Announce what you are about to do.
-   b. Write the code / make the changes.
-   c. Mark the task as `[x]` in the state file.
-   d. If a gotcha from the Knowledge Brief is relevant, explicitly note how you addressed it.
+   a. Write the code / make the changes.
+   b. If `git.auto_stage: true`, stage the changes immediately.
+   c. Commit using the format specified in `git.commit_format`:
+      - `conventional`: `<type>(<scope>): <description>` (e.g., `feat(PROJ-123): add login endpoint`)
+      - `angular`: `<type>(<scope>): <subject>` with body and footer
+      - `freeform`: descriptive message, no enforced format
+   d. Mark the task as `[x]` in the state file.
+   e. If a gotcha from the Knowledge Brief is relevant, note how it was addressed.
 4. After completing all tasks in an epic, provide a brief progress summary.
-5. If you encounter an unexpected issue:
+5. If you encounter an unexpected blocker:
    - Document it in the state file under a `## Blockers` section.
-   - STOP and ask the human for guidance.
+   - STOP and escalate to the human.
 
-### Iterative Development Rules:
-- Write small, focused changes — not monolithic commits.
-- After every significant change, verify it makes logical sense before moving on.
-- If a task turns out to be more complex than planned, pause and update the plan.
+#### 4.3 — Development Rules
+
+- One commit per task. Small, focused, atomic changes.
+- Commit messages must reference the Jira key if `git.commit_scope_from` is set.
+- Never commit generated files, build artifacts, or files matching `.devosignore`.
+- If a task is more complex than planned, update the plan in the state file before continuing.
 
 ---
 
-## Phase 5: Review
+## Phase 5: Verification Loop
 
-**Objective:** Critically review all generated code before finalization.
+**Objective:** Run build, lint, tests, and type checks in an automated self-healing loop until all pass or the max iteration limit is reached.
 
 ### Actions:
 
-1. **Assume the Reviewer Agent persona** by reading `.devos/system_prompts/reviewer_agent.md`.
-2. Update the state file YAML frontmatter:
+#### 5.1 — Update State
+
+```yaml
+---
+phase: verifying
+verification_iteration: 1
+last_updated: <YYYY-MM-DD HH:MM>
+---
+```
+
+#### 5.2 — Execute Verification Pipeline
+
+Read `verification` from `config.yaml`. For each enabled check, execute in this order:
+
+| Step | Config Key | Action |
+|---|---|---|
+| 1. Build | `verification.build` | Run `build.command`. If it fails, attempt to fix the build error and retry up to `build.max_retries` times. |
+| 2. Lint | `verification.lint` | Run `lint.command`. If `lint.auto_fix: true`, run `lint.auto_fix_command` first, then re-check. If `lint.fail_on_warnings: true`, treat warnings as errors. |
+| 3. Type Check | `verification.type_check` | Run `type_check.command` (if enabled). Fix type errors in-place. |
+| 4. Tests | `verification.tests` | Run `tests.command`. If `tests.coverage.enabled: true`, also run `tests.coverage.command` and compare against `tests.coverage.threshold`. |
+
+#### 5.3 — Self-Healing Loop
+
+If ANY check fails:
+
+1. Analyze the error output.
+2. Identify the root cause in the code written during Phase 4.
+3. Apply the fix.
+4. Commit the fix: `fix(<scope>): <description of what was fixed>`
+5. Increment `verification_iteration` in the state file.
+6. Re-run the ENTIRE verification pipeline from Step 1 (Build).
+
+**Loop termination conditions:**
+- **All checks pass** — proceed to Phase 6.
+- **`verification_iteration` exceeds `verification.max_loop_iterations`** (default: 5) — STOP and escalate to the human with a full diagnostic report.
+
+#### 5.4 — Verification Report
+
+Append to the state file:
+
+```markdown
+## Verification Report
+- **Iterations:** <count>
+- **Build:** PASS / FAIL (exit code, duration)
+- **Lint:** PASS / FAIL (errors: <N>, warnings: <N>)
+- **Type Check:** PASS / FAIL / SKIPPED
+- **Tests:** PASS / FAIL (passed: <N>, failed: <N>, skipped: <N>)
+- **Coverage:** <N>% (threshold: <threshold>%) — PASS / FAIL / SKIPPED
+```
+
+---
+
+## Phase 6: Self-Review + Instrumentation Audit
+
+**Objective:** Assume the Reviewer persona and perform a full code review including instrumentation compliance. This is an autonomous loop — no human gate. If issues are found, loop back to fix and re-verify.
+
+### Actions:
+
+#### 6.1 — Update State
 
 ```yaml
 ---
 phase: reviewing
+review_iteration: 1
 last_updated: <YYYY-MM-DD HH:MM>
 ---
 ```
 
-3. Execute the Reviewer Agent's full checklist against all code produced during Phase 4.
-4. **Cross-reference with `.devos/memory/brain_kb/`** — this step is MANDATORY.
-5. Issue a verdict: APPROVED, APPROVED WITH NOTES, CHANGES REQUESTED, or REJECTED.
-6. If CHANGES REQUESTED or REJECTED:
-   - List all issues with severity tags.
-   - **Return to Orchestrator persona.**
-   - Go back to Phase 4 to address the issues.
-   - Then re-enter Phase 5 for another review cycle.
-7. If APPROVED or APPROVED WITH NOTES:
-   - **Return to Orchestrator persona.**
-   - Proceed to Phase 6.
+#### 6.2 — Code Review (Reviewer Agent)
+
+1. **Assume the Reviewer Agent persona** by reading `.devos/system_prompts/reviewer_agent.md`.
+2. Review all code changes on the current branch (diff against `git.base_branch`).
+3. Execute the Reviewer Agent's full checklist (correctness, security, performance, maintainability, architecture).
+4. **Cross-reference with `.devos/memory/brain_kb/`** — MANDATORY.
+
+#### 6.3 — Instrumentation Audit
+
+Read `verification.instrumentation.checks` from `config.yaml`. For each enabled check:
+
+1. Scan all modified files on the branch.
+2. Evaluate the code against the check's `rule`.
+3. Report compliance status for each check:
+
+```markdown
+## Instrumentation Audit
+| Check           | Status      | Details                                    |
+|-----------------|-------------|--------------------------------------------|
+| logging         | PASS / FAIL | <specifics>                                |
+| error_handling  | PASS / FAIL | <specifics>                                |
+| metrics         | PASS / FAIL | <specifics>                                |
+| tracing         | PASS / FAIL | <specifics>                                |
+| security        | PASS / FAIL | <specifics>                                |
+```
+
+#### 6.4 — Verdict and Loop
+
+Issue a verdict based on the combined code review and instrumentation audit:
+
+- **APPROVED** — All checks pass. Proceed to Phase 7.
+- **CHANGES REQUESTED** — Issues found. Apply fixes autonomously:
+  1. **Return to Orchestrator persona.**
+  2. Fix all issues flagged by the review.
+  3. Commit fixes: `refactor(<scope>): address review findings — <summary>`
+  4. Increment `review_iteration` in state file.
+  5. **Go back to Phase 5** (re-run full verification pipeline).
+  6. Then re-enter Phase 6 for another review cycle.
+
+**Loop termination:** If `review_iteration` exceeds 3, STOP and escalate to the human. Provide the full review log and remaining issues.
+
+After APPROVED:
+- **Return to Orchestrator persona.**
+- Append the review verdict and instrumentation audit to the state file.
 
 ---
 
-## Phase 6: Finalization — Brain Sync
+## Phase 7: PR Delivery + Brain Sync
 
-**Objective:** Capture lessons learned and close the workflow.
+**Objective:** Create the pull request, link external systems, persist lessons learned, and deliver the finished work to the human for final review on GitHub.
 
 ### Actions:
 
-1. Update the state file YAML frontmatter:
+#### 7.1 — Update State
 
 ```yaml
 ---
-phase: completed
+phase: delivering
 last_updated: <YYYY-MM-DD HH:MM>
-completed_at: <YYYY-MM-DD HH:MM>
 ---
 ```
 
-### HITL Gate:
-> "**Development Complete. Final Review Required.**
->
-> All code has been written and reviewed. Before I close this workflow:
-> - [DONE] **Approve** — I will finalize and sync to the Brain KB.
-> - [IN PROGRESS] **Re-review** — I will run another review cycle.
-> - **Reject** — I will revert to the Execution phase."
+#### 7.2 — Push Branch
 
-[STOP] **STOP. Wait for human approval before finalizing.**
+```
+git push origin <branch_name>
+```
 
-2. Upon approval, create a new knowledge file in `.devos/memory/brain_kb/` with the naming convention:
+#### 7.3 — Generate PR Body
+
+Read `pull_request.body_sections` from `config.yaml`. For each section, extract content from the state file and compose the PR body:
+
+| Section | Source |
+|---|---|
+| `summary` | Draft artifact `## Summary` section |
+| `changes_made` | `git diff --stat` against base branch, with per-file descriptions from the plan |
+| `implementation_plan` | Condensed version of Phase 3 plan (epics and tasks with status) |
+| `testing_done` | Verification Report from Phase 5 (build, lint, tests, coverage) |
+| `instrumentation_checklist` | Instrumentation Audit table from Phase 6 |
+| `knowledge_brief_excerpt` | Gotchas, conventions, and business rules that were applied |
+| `jira_link` | Link to the source Jira ticket: `<jira.base_url>/browse/<jira_key>` |
+
+#### 7.4 — Create Pull Request
+
+Read `pull_request` config and execute:
+
+```
+gh pr create \
+  --base <pull_request.base_branch> \
+  --head <branch_name> \
+  --title "<rendered title_template>" \
+  --body "<generated PR body>" \
+  --reviewer <reviewers> \
+  --label <labels> \
+  [--draft if pull_request.draft: true]
+```
+
+Capture the PR URL from the output.
+
+#### 7.5 — Link External Systems
+
+If `pull_request.link_jira: true` and Jira integration is enabled:
+1. Add a comment to the Jira ticket with the PR URL.
+2. Transition the ticket status to `pull_request.jira_transition_on_pr` (default: "In Review").
+
+#### 7.6 — Brain Sync
+
+Create a new knowledge file in `.devos/memory/brain_kb/`:
 
 ```
 learned_YYMMDD_<short-slug>.md
@@ -252,6 +401,8 @@ learned_YYMMDD_<short-slug>.md
 ---
 date: <YYYY-MM-DD>
 source_task: "<draft title>"
+jira_key: "<jira_key>"
+pr_url: "<PR URL>"
 tags: [<relevant tags>]
 ---
 
@@ -261,24 +412,47 @@ tags: [<relevant tags>]
 <Brief description of what was built and any notable decisions.>
 
 ## Gotchas & Traps
-- [TRAP] <Gotcha 1>: <Description of the trap and how it was resolved.>
-- [TRAP] <Gotcha 2>: <Description.>
+- [TRAP] <Gotcha 1>: <Description and resolution.>
 
 ## Conventions Established
-- <Any new patterns or standards that emerged from this work.>
+- <Any new patterns or standards that emerged.>
+
+## Verification Notes
+- Build: <any build issues encountered and how they were resolved>
+- Tests: <test coverage achieved, any flaky tests noted>
+- Instrumentation: <any instrumentation gaps found and fixed>
 
 ## What Went Well
-- [DONE] <Positive outcome 1>
+- <Positive outcome 1>
 
 ## What Could Improve
-- [IN PROGRESS] <Improvement suggestion 1>
+- <Improvement suggestion 1>
 ```
 
-3. Confirm to the user:
-> "[DONE] **Workflow Complete.**
+#### 7.7 — Update State and Deliver
+
+```yaml
+---
+phase: completed
+pr_url: "<PR URL>"
+branch: "<branch_name>"
+completed_at: <YYYY-MM-DD HH:MM>
+last_updated: <YYYY-MM-DD HH:MM>
+---
+```
+
+**Final output to the human:**
+
+> **Workflow Complete. PR Delivered.**
 >
-> - State file updated to `phase: completed`.
-> - Lessons learned synced to `brain_kb/learned_YYMMDD_<slug>.md`.
-> - The Brain KB now contains <N> total knowledge entries.
+> - **PR:** <PR URL>
+> - **Branch:** `<branch_name>` -> `<base_branch>`
+> - **Commits:** <count> commits
+> - **Verification:** Build PASS, Lint PASS, Tests PASS (<N> passed), Coverage <N>%
+> - **Review:** APPROVED (iteration <N>)
+> - **Instrumentation:** All checks passed
+> - **Jira:** <jira_key> transitioned to "In Review"
+> - **Brain KB:** Lessons synced to `brain_kb/learned_YYMMDD_<slug>.md`
 >
-> Ready for the next task. Use `/devos.start` to begin a new session."
+> Ready for the next task. Use `/devos.start` to begin a new session.
+
