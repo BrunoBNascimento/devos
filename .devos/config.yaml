@@ -1,0 +1,18 @@
+version: 3.0
+framework: "DevOS - Agentic Workflow"
+
+workspace:
+  repo_directories: ["./"] # Directories for dynamic discovery
+  ignore_patterns_file: ".devos/.devosignore"
+
+knowledge_system:
+  router_enabled: true
+  domains:
+    - name: "General Rules"
+      path: ".devos/memory/brain_kb/"
+      description: "Permanent memory of gotchas, traps, and lessons learned by the team."
+
+paths:
+  prompts: ".devos/system_prompts/"
+  workflows: ".devos/workflows/"
+  state: ".devos/memory/state/"
