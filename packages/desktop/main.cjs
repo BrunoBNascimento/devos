@@ -46,11 +46,18 @@ ipcMain.handle('devos:execute', async (event, { task, engine, useWsl }) => {
   return new Promise((resolve, reject) => {
     // Engine can be "claude" or "gemini"
     let command = engine === 'claude' ? 'claude' : 'gemini';
-    const args = ['-p', `Run /devos.develop for Jira Task ${task}. Use DevOS Orchestrator persona.`];
+    let args = ['-p', `Run /devos.develop for Jira Task ${task}. Use DevOS Orchestrator persona.`];
     
-    // If running on Windows and the user checked "Use WSL", we prepend "wsl" to bridge the gap.
+    // If running on Windows and the user checked "Use WSL", we bridge the gap.
+    // We must use an interactive shell (-ic) so that NVM and global npm paths are loaded.
     if (useWsl) {
-      args.unshift(command); // move 'claude' to args
+      // Escape inner quotes
+      const taskEscaped = task.replace(/"/g, '\\"');
+      const innerCmd = `${command} -p "Run /devos.develop for Jira Task ${taskEscaped}. Use DevOS Orchestrator persona."`;
+      
+      // We wrap it in a shell invocation. We default to zsh since it threw a zsh error earlier, 
+      // but fallback to bash if zsh isn't standard. Actually, running `wsl $SHELL -ic` works best in linux.
+      args = ['--', 'sh', '-c', `zsh -ic '${innerCmd}' || bash -ic '${innerCmd}'`];
       command = 'wsl';
     }
     
