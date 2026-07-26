@@ -5,11 +5,11 @@ import {
   Background,
   applyNodeChanges,
   applyEdgeChanges,
-  Node,
-  Edge
+  type Node,
+  type Edge
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Play, Terminal, Box, Search } from 'lucide-react';
+import { Play, Terminal, Box, Search, Settings, X, Save } from 'lucide-react';
 
 const initialNodes: Node[] = [
   {
@@ -67,6 +67,28 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [engine, setEngine] = useState('claude');
+  
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [configContent, setConfigContent] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const openSettings = async () => {
+    setIsSettingsOpen(true);
+    if ((window as any).devosAPI) {
+      const res = await (window as any).devosAPI.readConfig();
+      if (res.success) setConfigContent(res.content);
+      else setConfigContent(`# Error loading config: ${res.error}`);
+    }
+  };
+
+  const saveSettings = async () => {
+    setIsSaving(true);
+    if ((window as any).devosAPI) {
+      await (window as any).devosAPI.saveConfig(configContent);
+    }
+    setIsSaving(false);
+    setIsSettingsOpen(false);
+  };
 
   const onNodesChange = useCallback(
     (changes: any) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -143,6 +165,12 @@ function App() {
             <Play className="w-4 h-4" />
             {isRunning ? 'Running...' : 'Start'}
           </button>
+          <button
+            onClick={openSettings}
+            className="flex items-center justify-center p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
@@ -180,6 +208,47 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl w-3/4 max-w-4xl h-3/4 flex flex-col shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950/50">
+              <div className="flex items-center gap-2 font-semibold text-slate-200">
+                <Settings className="w-4 h-4 text-slate-400" />
+                config.yaml
+              </div>
+              <button onClick={() => setIsSettingsOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 p-4 bg-[#0d1117]">
+              <textarea
+                className="w-full h-full bg-transparent text-slate-300 font-mono text-sm focus:outline-none resize-none"
+                value={configContent}
+                onChange={(e) => setConfigContent(e.target.value)}
+                spellCheck={false}
+              />
+            </div>
+            <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end gap-3">
+              <button 
+                onClick={() => setIsSettingsOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={saveSettings}
+                disabled={isSaving}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg text-sm font-medium transition-all"
+              >
+                <Save className="w-4 h-4" />
+                {isSaving ? 'Saving...' : 'Save Config'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -16,8 +16,8 @@ function createWindow() {
     titleBarStyle: 'hidden', // Sleek look
   });
 
-  // Check if we are in development mode (Vite server running)
-  const isDev = process.env.NODE_ENV === 'development';
+  // Use app.isPackaged to determine if we are in dev mode
+  const isDev = !app.isPackaged;
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5173');
@@ -39,15 +39,23 @@ app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
 });
 
+const fs = require('fs');
+
 // IPC handler to execute the DevOS command via child process
 ipcMain.handle('devos:execute', async (event, { task, engine }) => {
   return new Promise((resolve, reject) => {
     // Engine can be "claude" or "gemini"
-    const command = engine === 'claude' ? 'claude' : 'gemini';
+    let command = engine === 'claude' ? 'claude' : 'gemini';
     const args = ['-p', `Run /devos.develop for Jira Task ${task}. Use DevOS Orchestrator persona.`];
     
+    // If running on Windows, the user has their CLI installed in WSL. 
+    // We prepend "wsl" to bridge the gap.
+    if (process.platform === 'win32') {
+      args.unshift(command); // move 'claude' to args
+      command = 'wsl';
+    }
+    
     // Spawning hidden CLI process
-    // In real scenarios, this needs to run in the workspace root, so we pass cwd
     const cwd = path.resolve(process.cwd(), '../../'); // Go up to workspace root from desktop folder
     
     const child = spawn(command, args, { cwd, shell: true });
@@ -56,7 +64,6 @@ ipcMain.handle('devos:execute', async (event, { task, engine }) => {
     
     child.stdout.on('data', (data) => {
       output += data.toString();
-      // We can also send streams back to UI here
       event.sender.send('devos:stream', data.toString());
     });
 
@@ -66,11 +73,29 @@ ipcMain.handle('devos:execute', async (event, { task, engine }) => {
     });
 
     child.on('close', (code) => {
-      if (code === 0) {
-        resolve({ success: true, output });
-      } else {
-        resolve({ success: false, error: output, code });
-      }
+      resolve({ success: code === 0, output, code });
     });
   });
+});
+
+ipcMain.handle('devos:readConfig', async () => {
+  try {
+    const configPath = path.resolve(process.cwd(), '../../.devos/config.yaml');
+    if (fs.existsSync(configPath)) {
+      return { success: true, content: fs.readFileSync(configPath, 'utf8') };
+    }
+    return { success: false, error: 'Config file not found.' };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
+});
+
+ipcMain.handle('devos:saveConfig', async (event, content) => {
+  try {
+    const configPath = path.resolve(process.cwd(), '../../.devos/config.yaml');
+    fs.writeFileSync(configPath, content, 'utf8');
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: String(err) };
+  }
 });
