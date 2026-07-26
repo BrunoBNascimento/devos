@@ -2,7 +2,10 @@ version: 3.0
 framework: "DevOS - Agentic Workflow"
 
 workspace:
-  repo_directories: ["./"] # Directories for dynamic discovery
+  # Paths to the repositories this DevOS instance manages. 
+  # For multi-repo orchestrations, point to your external repositories folder or list specific paths.
+  # Examples: ["./"], ["./frontend", "./backend"], ["C:/Users/bruno/Repositories/"]
+  repo_directories: ["./"] 
   ignore_patterns_file: ".devos/.devosignore"
 
 knowledge_system:
