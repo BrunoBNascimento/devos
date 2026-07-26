@@ -67,10 +67,19 @@ function App() {
   const [isRunning, setIsRunning] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [engine, setEngine] = useState('claude');
+  const [useWsl, setUseWsl] = useState(false);
+  const [isWindows, setIsWindows] = useState(false);
   
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [configContent, setConfigContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Check platform on mount
+  useState(() => {
+    if ((window as any).devosAPI?.isWindows) {
+      setIsWindows(true);
+    }
+  });
 
   const openSettings = async () => {
     setIsSettingsOpen(true);
@@ -111,7 +120,7 @@ function App() {
       });
 
       try {
-        const result = await (window as any).devosAPI.executeTask(taskInput, engine);
+        const result = await (window as any).devosAPI.executeTask(taskInput, engine, useWsl);
         setLogs((prev) => [...prev, `Workflow completed with code: ${result.code}`]);
       } catch (err) {
         setLogs((prev) => [...prev, `Error: ${String(err)}`]);
@@ -148,6 +157,18 @@ function App() {
             />
           </div>
           
+          {isWindows && (
+            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={useWsl} 
+                onChange={e => setUseWsl(e.target.checked)} 
+                className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-blue-600 focus:ring-blue-600 focus:ring-offset-slate-900"
+              />
+              Use WSL
+            </label>
+          )}
+
           <select 
             value={engine}
             onChange={e => setEngine(e.target.value)}

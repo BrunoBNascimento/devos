@@ -42,15 +42,14 @@ app.on('window-all-closed', function () {
 const fs = require('fs');
 
 // IPC handler to execute the DevOS command via child process
-ipcMain.handle('devos:execute', async (event, { task, engine }) => {
+ipcMain.handle('devos:execute', async (event, { task, engine, useWsl }) => {
   return new Promise((resolve, reject) => {
     // Engine can be "claude" or "gemini"
     let command = engine === 'claude' ? 'claude' : 'gemini';
     const args = ['-p', `Run /devos.develop for Jira Task ${task}. Use DevOS Orchestrator persona.`];
     
-    // If running on Windows, the user has their CLI installed in WSL. 
-    // We prepend "wsl" to bridge the gap.
-    if (process.platform === 'win32') {
+    // If running on Windows and the user checked "Use WSL", we prepend "wsl" to bridge the gap.
+    if (useWsl) {
       args.unshift(command); // move 'claude' to args
       command = 'wsl';
     }
