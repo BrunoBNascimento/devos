@@ -226,14 +226,16 @@ last_updated: <YYYY-MM-DD HH:MM>
 
 #### 5.2 — Execute Verification Pipeline
 
-Read `verification` from `config.yaml`. For each enabled check, execute in this order:
+1. Identify all files modified in Phase 4.
+2. Group the modified files by project by matching their paths against `verification.projects[].path_match` in `config.yaml`. (Fallback to the `default` project if no specific match is found).
+3. For each affected project, navigate to its root directory and execute its verification pipeline in this order:
 
 | Step | Config Key | Action |
 |---|---|---|
-| 1. Build | `verification.build` | Run `build.command`. If it fails, attempt to fix the build error and retry up to `build.max_retries` times. |
-| 2. Lint | `verification.lint` | Run `lint.command`. If `lint.auto_fix: true`, run `lint.auto_fix_command` first, then re-check. If `lint.fail_on_warnings: true`, treat warnings as errors. |
-| 3. Type Check | `verification.type_check` | Run `type_check.command` (if enabled). Fix type errors in-place. |
-| 4. Tests | `verification.tests` | Run `tests.command`. If `tests.coverage.enabled: true`, also run `tests.coverage.command` and compare against `tests.coverage.threshold`. |
+| 1. Build | `build` | Run `build.command`. If it fails, attempt to fix the build error and retry up to `build.max_retries` times. |
+| 2. Lint | `lint` | Run `lint.command`. If `lint.auto_fix: true`, run `lint.auto_fix_command` first, then re-check. If `lint.fail_on_warnings: true`, treat warnings as errors. |
+| 3. Type Check | `type_check` | Run `type_check.command` (if enabled). Fix type errors in-place. |
+| 4. Tests | `tests` | Run `tests.command`. If `tests.coverage.enabled: true`, also run `tests.coverage.command` and compare against `tests.coverage.threshold`. |
 
 #### 5.3 — Self-Healing Loop
 

@@ -135,33 +135,38 @@ git:
 verification:
   max_loop_iterations: 5                 # Max fix-verify cycles before escalating to human
 
-  build:
-    enabled: true
-    command: "npm run build"             # Build command — adapt to your stack
-    timeout_seconds: 120
-    max_retries: 2                       # Retries on build failure before entering fix cycle
+  # Projects allow different verification commands for monorepos (e.g., frontend vs backend)
+  projects:
+    - name: "default"
+      path_match: "**"                   # Glob pattern to match modified files
+      
+      build:
+        enabled: true
+        command: "npm run build"         # Build command — adapt to your stack
+        timeout_seconds: 120
+        max_retries: 2                   # Retries on build failure before entering fix cycle
 
-  lint:
-    enabled: true
-    command: "npm run lint"
-    auto_fix: true                       # Attempt auto-fix before reporting errors
-    auto_fix_command: "npm run lint:fix"
-    fail_on_warnings: false              # Treat lint warnings as errors
+      lint:
+        enabled: true
+        command: "npm run lint"
+        auto_fix: true                   # Attempt auto-fix before reporting errors
+        auto_fix_command: "npm run lint:fix"
+        fail_on_warnings: false          # Treat lint warnings as errors
 
-  tests:
-    enabled: true
-    command: "npm run test"
-    coverage:
-      enabled: true
-      command: "npm run test:coverage"
-      threshold: 80                      # Minimum coverage % to pass
-      fail_below_threshold: true
-    timeout_seconds: 300
-    must_pass: true                      # All tests must pass to proceed
+      tests:
+        enabled: true
+        command: "npm run test"
+        coverage:
+          enabled: true
+          command: "npm run test:coverage"
+          threshold: 80                  # Minimum coverage % to pass
+          fail_below_threshold: true
+        timeout_seconds: 300
+        must_pass: true                  # All tests must pass to proceed
 
-  type_check:
-    enabled: false                       # Enable for TypeScript / typed languages
-    command: "npx tsc --noEmit"
+      type_check:
+        enabled: false                   # Enable for TypeScript / typed languages
+        command: "npx tsc --noEmit"
 
   documentation:
     enabled: true
