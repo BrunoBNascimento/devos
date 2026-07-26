@@ -227,15 +227,17 @@ last_updated: <YYYY-MM-DD HH:MM>
 #### 5.2 — Execute Verification Pipeline
 
 1. Identify all files modified in Phase 4.
-2. Group the modified files by project by matching their paths against `verification.projects[].path_match` in `config.yaml`. (Fallback to the `default` project if no specific match is found).
-3. For each affected project, navigate to its root directory and execute its verification pipeline in this order:
+2. Group the modified files by project directory.
+3. For each project directory, read `verification` from `config.yaml`.
+4. Inspect the project's configuration files (e.g., `package.json`, `pom.xml`, `build.gradle`, `Makefile`) to dynamically determine the appropriate commands.
+5. Execute the pipeline in this order:
 
 | Step | Config Key | Action |
 |---|---|---|
-| 1. Build | `build` | Run `build.command`. If it fails, attempt to fix the build error and retry up to `build.max_retries` times. |
-| 2. Lint | `lint` | Run `lint.command`. If `lint.auto_fix: true`, run `lint.auto_fix_command` first, then re-check. If `lint.fail_on_warnings: true`, treat warnings as errors. |
-| 3. Type Check | `type_check` | Run `type_check.command` (if enabled). Fix type errors in-place. |
-| 4. Tests | `tests` | Run `tests.command`. If `tests.coverage.enabled: true`, also run `tests.coverage.command` and compare against `tests.coverage.threshold`. |
+| 1. Build | `build` | If `enabled: true`, discover and run the build command. If it fails, attempt to fix the error and retry up to `build.max_retries` times. |
+| 2. Lint | `lint` | If `enabled: true`, discover and run the lint command. If `lint.auto_fix: true`, attempt to run a fix command first. Treat warnings as errors if `fail_on_warnings: true`. |
+| 3. Type Check | `type_check` | If `enabled: true`, discover and run the type check command. Fix type errors in-place. |
+| 4. Tests | `tests` | If `enabled: true`, discover and run the test command. If `tests.coverage.enabled: true`, also run coverage and compare against `tests.coverage.threshold`. |
 
 #### 5.3 — Self-Healing Loop
 
