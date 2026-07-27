@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { 
-  Box, Settings, Activity, Brain, 
+  Box, Settings, Activity, Brain, Database,
   Terminal, ChevronUp, ChevronDown, CheckCircle, 
   GitPullRequest, MessageSquare, Clock, RefreshCw, AlertTriangle
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 function App() {
   const [currentTab, setCurrentTab] = useState('daily');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeWorkspace, setActiveWorkspace] = useState<string | null>(null);
   
   // Data State
   const [configContent, setConfigContent] = useState('');
@@ -26,9 +28,12 @@ function App() {
 
   // Init
   useEffect(() => {
-    fetchData();
-
     if ((window as any).devosAPI) {
+      (window as any).devosAPI.getActiveWorkspace().then((workspace: string | null) => {
+        setActiveWorkspace(workspace);
+        if (workspace) fetchData();
+      });
+
       (window as any).devosAPI.getCrawlerStatus().then((s: any) => {
         setCrawlerStatus(s.status);
         setLastSync(s.lastSync);
@@ -77,12 +82,22 @@ function App() {
     }
   };
 
+  const handleSelectWorkspace = async () => {
+    if ((window as any).devosAPI) {
+      const res = await (window as any).devosAPI.selectWorkspace();
+      if (res.success) {
+        setActiveWorkspace(res.workspace);
+        fetchData();
+      }
+    }
+  };
+
   const parseSection = (body: string, heading: string) => {
-    if (!body) return [];
+    if (!body) return '';
     const regex = new RegExp(`## ${heading}\\s*\\n((?:- .*\\n?)*)`);
     const match = body.match(regex);
-    if (!match || !match[1]) return [];
-    return match[1].split('\\n').filter(l => l.trim().startsWith('-')).map(l => l.replace(/^- /, '').trim());
+    if (!match || !match[1]) return '';
+    return match[1].trim();
   };
 
   const renderSidebar = () => (
@@ -115,9 +130,9 @@ function App() {
   const renderDailyTab = () => {
     const digest = pendingTasks.find(f => f.metadata?.type === 'digest' || f.filename === 'daily_digest.md');
     
-    let activeContext: string[] = [];
-    let actionRequired: string[] = [];
-    let extractedKnowledge: string[] = [];
+    let activeContext: string = '';
+    let actionRequired: string = '';
+    let extractedKnowledge: string = '';
 
     if (digest?.body) {
       activeContext = parseSection(digest.body, 'Active Context \\(Merged\\)');
@@ -160,42 +175,51 @@ function App() {
               <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
                 <Brain className="w-5 h-5 text-indigo-500" /> Active Context (Fused)
               </h2>
-              <ul className="space-y-4">
-                {activeContext.length === 0 ? <li className="text-slate-500 text-sm italic">No active context found.</li> : activeContext.map((t, i) => (
-                  <li key={i} className="text-sm text-slate-300 flex items-start gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-800/50">
-                    <span className="text-indigo-500 mt-0.5">•</span> 
-                    <span className="leading-relaxed" dangerouslySetInnerHTML={{ __html: t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong class="text-indigo-400">$1</strong>') }} />
-                  </li>
-                ))}
-              </ul>
+              <div className="markdown-body">
+                {!activeContext ? <p className="text-slate-500 text-sm italic">No active context found.</p> : (
+                  <ReactMarkdown 
+                    components={{
+                      ul: ({node, ...props}) => <ul className="space-y-4" {...props} />,
+                      li: ({node, ...props}) => <li className="text-sm text-slate-300 flex items-start gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-800/50"><span className="text-indigo-500 mt-0.5">•</span><div className="leading-relaxed">{props.children}</div></li>,
+                      strong: ({node, ...props}) => <strong className="text-indigo-400 font-bold" {...props} />
+                    }}
+                  >{activeContext}</ReactMarkdown>
+                )}
+              </div>
             </div>
 
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
               <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
                 <AlertTriangle className="w-5 h-5 text-rose-500" /> Action Required (Blockers)
               </h2>
-              <ul className="space-y-3">
-                {actionRequired.length === 0 ? <li className="text-slate-500 text-sm italic">No PRs or tasks waiting on you.</li> : actionRequired.map((t, i) => (
-                  <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                    <span className="text-rose-500 mt-0.5">•</span> 
-                    <span dangerouslySetInnerHTML={{ __html: t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong class="text-rose-400">$1</strong>') }} />
-                  </li>
-                ))}
-              </ul>
+              <div className="markdown-body">
+                {!actionRequired ? <p className="text-slate-500 text-sm italic">No PRs or tasks waiting on you.</p> : (
+                  <ReactMarkdown
+                    components={{
+                      ul: ({node, ...props}) => <ul className="space-y-3" {...props} />,
+                      li: ({node, ...props}) => <li className="text-sm text-slate-300 flex items-start gap-2"><span className="text-rose-500 mt-0.5">•</span><div>{props.children}</div></li>,
+                      strong: ({node, ...props}) => <strong className="text-rose-400 font-bold" {...props} />
+                    }}
+                  >{actionRequired}</ReactMarkdown>
+                )}
+              </div>
             </div>
 
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
               <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
                 <Database className="w-5 h-5 text-emerald-500" /> New Knowledge Extracted
               </h2>
-              <ul className="space-y-3">
-                {extractedKnowledge.length === 0 ? <li className="text-slate-500 text-sm italic">No new conventions learned today.</li> : extractedKnowledge.map((t, i) => (
-                  <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                    <span className="text-emerald-500 mt-0.5">•</span> 
-                    <span dangerouslySetInnerHTML={{ __html: t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong class="text-emerald-400">$1</strong>') }} />
-                  </li>
-                ))}
-              </ul>
+              <div className="markdown-body">
+                {!extractedKnowledge ? <p className="text-slate-500 text-sm italic">No new conventions learned today.</p> : (
+                  <ReactMarkdown
+                    components={{
+                      ul: ({node, ...props}) => <ul className="space-y-3" {...props} />,
+                      li: ({node, ...props}) => <li className="text-sm text-slate-300 flex items-start gap-2"><span className="text-emerald-500 mt-0.5">•</span><div>{props.children}</div></li>,
+                      strong: ({node, ...props}) => <strong className="text-emerald-400 font-bold" {...props} />
+                    }}
+                  >{extractedKnowledge}</ReactMarkdown>
+                )}
+              </div>
             </div>
 
           </div>
@@ -235,6 +259,24 @@ function App() {
       </div>
     </div>
   );
+
+  if (!activeWorkspace) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-900 text-slate-100 font-sans">
+        <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/50 mb-6">
+          <Box className="w-8 h-8 text-white" />
+        </div>
+        <h1 className="text-3xl font-bold mb-2">DevOS Control Plane</h1>
+        <p className="text-slate-400 mb-8 max-w-md text-center">Select your local repository to initialize the observability dashboard.</p>
+        <button 
+          onClick={handleSelectWorkspace}
+          className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold shadow-lg shadow-blue-900/20 transition-all"
+        >
+          Select Workspace Folder
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full flex bg-slate-900 text-slate-100 font-sans overflow-hidden">

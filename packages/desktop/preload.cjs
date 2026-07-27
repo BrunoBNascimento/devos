@@ -18,5 +18,8 @@ contextBridge.exposeInMainWorld('devosAPI', {
   },
   onCrawlerStream: (callback) => ipcRenderer.on('devos:crawlerStream', (_event, value) => callback(value)),
   
+  selectWorkspace: () => ipcRenderer.invoke('devos:selectWorkspace'),
+  getActiveWorkspace: () => ipcRenderer.invoke('devos:getActiveWorkspace'),
+  
   isWindows: process.platform === 'win32',
 });

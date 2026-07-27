@@ -1,16 +1,16 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 
 let mainWindow;
+let activeWorkspace = null;
 
 // Crawler State
 let crawlerStatus = 'idle';
 let lastSync = null;
 let syncIntervalId = null;
 let syncIntervalValue = 'off';
-// activeChild removed since execution is now via CLI
 
 function broadcastCrawlerState() {
   if (mainWindow) {
@@ -23,7 +23,7 @@ function broadcastCrawlerState() {
 }
 
 function runSyncIntegrations(useWsl = false, engine = 'claude') {
-  if (crawlerStatus === 'syncing') return;
+  if (crawlerStatus === 'syncing' || !activeWorkspace) return;
   crawlerStatus = 'syncing';
   broadcastCrawlerState();
 
@@ -37,8 +37,7 @@ function runSyncIntegrations(useWsl = false, engine = 'claude') {
     isShell = false;
   }
 
-  const cwd = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos';
-  const child = spawn(command, args, { cwd, shell: isShell });
+  const child = spawn(command, args, { cwd: activeWorkspace, shell: isShell });
 
   child.stdout.on('data', (data) => {
     if (mainWindow) mainWindow.webContents.send('devos:crawlerStream', data.toString());
@@ -90,9 +89,6 @@ app.on('window-all-closed', function () {
 });
 
 
-// Execution orchestration is now strictly handled via terminal CLI.
-// DevOS Desktop acts purely as a Control Plane Observability Dashboard.
-
 ipcMain.handle('devos:syncIntegrations', async (event, { useWsl, engine }) => {
   runSyncIntegrations(useWsl, engine);
   return { success: true };
@@ -113,7 +109,7 @@ ipcMain.handle('devos:setSyncInterval', async (event, interval) => {
     
     if (ms > 0) {
       syncIntervalId = setInterval(() => {
-        runSyncIntegrations(true, 'claude'); // Assume wsl/claude for background for now, could be dynamic
+        runSyncIntegrations(true, 'claude');
       }, ms);
     }
   }
@@ -127,8 +123,9 @@ ipcMain.handle('devos:getCrawlerStatus', async () => {
 
 ipcMain.handle('devos:readConfig', async () => {
   try {
-    const configPath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\config.yaml';
-    const examplePath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\config.example.yaml';
+    if (!activeWorkspace) return { success: false, error: 'No workspace selected.' };
+    const configPath = path.join(activeWorkspace, '.devos', 'config.yaml');
+    const examplePath = path.join(activeWorkspace, '.devos', 'config.example.yaml');
     
     if (fs.existsSync(configPath)) {
       return { success: true, content: fs.readFileSync(configPath, 'utf8') };
@@ -143,7 +140,8 @@ ipcMain.handle('devos:readConfig', async () => {
 
 ipcMain.handle('devos:saveConfig', async (event, content) => {
   try {
-    const configPath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\config.yaml';
+    if (!activeWorkspace) return { success: false, error: 'No workspace selected.' };
+    const configPath = path.join(activeWorkspace, '.devos', 'config.yaml');
     fs.writeFileSync(configPath, content, 'utf8');
     return { success: true };
   } catch (err) {
@@ -153,7 +151,8 @@ ipcMain.handle('devos:saveConfig', async (event, content) => {
 
 ipcMain.handle('devos:readMetrics', async () => {
   try {
-    const metricsPath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\memory\\metrics\\dora.json';
+    if (!activeWorkspace) return { success: false, error: 'No workspace selected.' };
+    const metricsPath = path.join(activeWorkspace, '.devos', 'memory', 'metrics', 'dora.json');
     if (fs.existsSync(metricsPath)) {
       return { success: true, content: fs.readFileSync(metricsPath, 'utf8') };
     }
@@ -217,7 +216,8 @@ function parseMd(filePath) {
 
 ipcMain.handle('devos:readKnowledge', async () => {
   try {
-    const kbPath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\memory\\brain_kb';
+    if (!activeWorkspace) return { success: true, files: [] };
+    const kbPath = path.join(activeWorkspace, '.devos', 'memory', 'brain_kb');
     if (fs.existsSync(kbPath)) {
       const files = fs.readdirSync(kbPath).filter(f => f.endsWith('.md'));
       const parsedFiles = files.map(f => parseMd(path.join(kbPath, f)));
@@ -231,7 +231,8 @@ ipcMain.handle('devos:readKnowledge', async () => {
 
 ipcMain.handle('devos:readPendingTasks', async () => {
   try {
-    const statePath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\memory\\state';
+    if (!activeWorkspace) return { success: true, files: [] };
+    const statePath = path.join(activeWorkspace, '.devos', 'memory', 'state');
     if (fs.existsSync(statePath)) {
       const files = fs.readdirSync(statePath).filter(f => f.endsWith('.md'));
       const parsedFiles = files.map(f => parseMd(path.join(statePath, f)));
@@ -245,7 +246,8 @@ ipcMain.handle('devos:readPendingTasks', async () => {
 
 ipcMain.handle('devos:readTranscripts', async () => {
   try {
-    const transcriptsPath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\memory\\transcripts';
+    if (!activeWorkspace) return { success: true, files: [] };
+    const transcriptsPath = path.join(activeWorkspace, '.devos', 'memory', 'transcripts');
     if (fs.existsSync(transcriptsPath)) {
       const files = fs.readdirSync(transcriptsPath).filter(f => f.endsWith('.md'));
       const parsedFiles = files.map(f => parseMd(path.join(transcriptsPath, f)));
@@ -255,4 +257,20 @@ ipcMain.handle('devos:readTranscripts', async () => {
   } catch (err) {
     return { success: false, error: String(err) };
   }
+});
+
+ipcMain.handle('devos:selectWorkspace', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: 'Select DevOS Workspace'
+  });
+  if (!result.canceled && result.filePaths.length > 0) {
+    activeWorkspace = result.filePaths[0];
+    return { success: true, workspace: activeWorkspace };
+  }
+  return { success: false };
+});
+
+ipcMain.handle('devos:getActiveWorkspace', () => {
+  return activeWorkspace;
 });

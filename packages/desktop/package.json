@@ -12,11 +12,33 @@
     "lint": "oxlint",
     "preview": "vite preview"
   },
+  "build": {
+    "appId": "com.devos.controlplane",
+    "productName": "DevOS Control Plane",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "files": [
+      "dist/**/*",
+      "main.cjs",
+      "preload.cjs"
+    ]
+  },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "lucide-react": "^1.27.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
+    "react-markdown": "^10.1.0",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
