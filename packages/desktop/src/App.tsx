@@ -115,16 +115,14 @@ function App() {
   const renderDailyTab = () => {
     const digest = pendingTasks.find(f => f.metadata?.type === 'digest' || f.filename === 'daily_digest.md');
     
-    let myTasks: string[] = [];
-    let myPRs: string[] = [];
+    let activeContext: string[] = [];
     let actionRequired: string[] = [];
-    let meetings: string[] = [];
+    let extractedKnowledge: string[] = [];
 
     if (digest?.body) {
-      myTasks = parseSection(digest.body, 'My Tasks');
-      myPRs = parseSection(digest.body, 'My PRs');
+      activeContext = parseSection(digest.body, 'Active Context \\(Merged\\)');
       actionRequired = parseSection(digest.body, 'Action Required');
-      meetings = parseSection(digest.body, 'Meeting Mentions & Transcripts');
+      extractedKnowledge = parseSection(digest.body, 'New Knowledge Extracted');
     }
 
     return (
@@ -156,17 +154,17 @@ function App() {
             <p className="text-slate-500 mt-2 text-center max-w-md">Click the button above to trigger the background agent to fuse your Jira tasks, GitHub PRs, and Meeting transcripts into a tactical daily view.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
+            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl md:col-span-2">
               <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
-                <CheckCircle className="w-5 h-5 text-emerald-500" /> My Priority Tasks
+                <Brain className="w-5 h-5 text-indigo-500" /> Active Context (Fused)
               </h2>
-              <ul className="space-y-3">
-                {myTasks.length === 0 ? <li className="text-slate-500 text-sm italic">No open tasks assigned to you.</li> : myTasks.map((t, i) => (
-                  <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                    <span className="text-emerald-500 mt-0.5">•</span> 
-                    <span dangerouslySetInnerHTML={{ __html: t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong class="text-emerald-400">$1</strong>') }} />
+              <ul className="space-y-4">
+                {activeContext.length === 0 ? <li className="text-slate-500 text-sm italic">No active context found.</li> : activeContext.map((t, i) => (
+                  <li key={i} className="text-sm text-slate-300 flex items-start gap-3 bg-slate-900/50 p-4 rounded-xl border border-slate-800/50">
+                    <span className="text-indigo-500 mt-0.5">•</span> 
+                    <span className="leading-relaxed" dangerouslySetInnerHTML={{ __html: t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong class="text-indigo-400">$1</strong>') }} />
                   </li>
                 ))}
               </ul>
@@ -174,10 +172,10 @@ function App() {
 
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
               <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
-                <AlertTriangle className="w-5 h-5 text-rose-500" /> Action Required (Reviews)
+                <AlertTriangle className="w-5 h-5 text-rose-500" /> Action Required (Blockers)
               </h2>
               <ul className="space-y-3">
-                {actionRequired.length === 0 ? <li className="text-slate-500 text-sm italic">No PRs waiting for your review.</li> : actionRequired.map((t, i) => (
+                {actionRequired.length === 0 ? <li className="text-slate-500 text-sm italic">No PRs or tasks waiting on you.</li> : actionRequired.map((t, i) => (
                   <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
                     <span className="text-rose-500 mt-0.5">•</span> 
                     <span dangerouslySetInnerHTML={{ __html: t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong class="text-rose-400">$1</strong>') }} />
@@ -188,27 +186,13 @@ function App() {
 
             <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
               <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
-                <GitPullRequest className="w-5 h-5 text-blue-500" /> My Open PRs
+                <Database className="w-5 h-5 text-emerald-500" /> New Knowledge Extracted
               </h2>
               <ul className="space-y-3">
-                {myPRs.length === 0 ? <li className="text-slate-500 text-sm italic">No open PRs authored by you.</li> : myPRs.map((t, i) => (
+                {extractedKnowledge.length === 0 ? <li className="text-slate-500 text-sm italic">No new conventions learned today.</li> : extractedKnowledge.map((t, i) => (
                   <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                    <span className="text-blue-500 mt-0.5">•</span> 
-                    <span dangerouslySetInnerHTML={{ __html: t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong class="text-blue-400">$1</strong>') }} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
-              <h2 className="text-lg font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-800 pb-3">
-                <MessageSquare className="w-5 h-5 text-amber-500" /> Transcripts & Mentions
-              </h2>
-              <ul className="space-y-3">
-                {meetings.length === 0 ? <li className="text-slate-500 text-sm italic">No meeting notes or mentions found today.</li> : meetings.map((t, i) => (
-                  <li key={i} className="text-sm text-slate-300 flex items-start gap-2">
-                    <span className="text-amber-500 mt-0.5">•</span> 
-                    <span dangerouslySetInnerHTML={{ __html: t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong class="text-amber-400">$1</strong>') }} />
+                    <span className="text-emerald-500 mt-0.5">•</span> 
+                    <span dangerouslySetInnerHTML={{ __html: t.replace(/\\*\\*(.*?)\\*\\*/g, '<strong class="text-emerald-400">$1</strong>') }} />
                   </li>
                 ))}
               </ul>
