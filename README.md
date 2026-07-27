@@ -8,26 +8,29 @@ It uses a dual-architecture design:
 
 ---
 
-## 1. Installation (The Framework)
+## 1. Installation (The Workspace Orchestrator)
 
-To inject DevOS into any repository, simply run the CLI scaffolder via `npx`:
+DevOS is designed to manage **multiple repositories simultaneously**. You do not install it *inside* a single project; you install it in a master workspace directory.
+
+Run the CLI scaffolder to initialize your DevOS brain:
 
 ```bash
-npx create-devos
+npx create-devos my-workspace
+cd my-workspace
 ```
 
-This will create a `.devos/` folder in your repository containing:
-- `config.yaml`: Your integrations (e.g., Jira, GitHub, Trello) and RAG domains.
+This generates a `.devos/` folder containing:
+- `config.yaml`: Here you will define `workspace.repo_directories: ["../frontend", "../backend"]` to point the AI to your actual codebases.
 - `workflows/`: The markdown orchestrator steps.
-- `system_prompts/`: Persona definitions for Planners, Reviewers, etc.
-- `memory/`: Where the AI stores state, logs, and `brain_kb` (Knowledge Base).
+- `system_prompts/`: Persona definitions (Planners, Reviewers).
+- `memory/`: Where the AI stores state, logs, and its permanent `brain_kb` (Knowledge Base).
 
 ### Usage
-DevOS is driven entirely by standard AI CLIs. Simply tell your AI to run a workflow:
+DevOS is driven entirely by standard AI CLIs. Navigate to your workspace folder and tell your AI to run a workflow:
 ```bash
 claude -p "Run /devos.daily"
 ```
-The AI will read the Orchestrator rules, discover your MCPs, and perform True Knowledge Fusion.
+The AI will read the Orchestrator rules, scan all repositories defined in your `config.yaml`, and perform cross-repo knowledge fusion and epic planning.
 
 ---
 
@@ -46,8 +49,9 @@ To view your Tactical Daily Digest and monitor the Crawler's background sync, do
 
 ---
 
-## Architecture: Why Filesystem-First?
-Most Agentic IDEs lock state in proprietary chat windows. DevOS forces the LLM to write its plans, reviews, and decisions to the filesystem (`.devos/memory/state/`).
+## Architecture: The Multi-Repo Filesystem-First Paradigm
+Most Agentic IDEs lock state in proprietary chat windows and struggle with cross-repository changes. DevOS forces the LLM to write its plans, reviews, and decisions to the filesystem (`.devos/memory/state/`) inside a master workspace.
+- **Multi-Repo Awareness**: Planners can orchestrate tasks that require backend and frontend changes simultaneously, tracking dependencies across folders.
 - **Resumable**: If your CLI crashes, you can resume exactly where you left off.
 - **Auditable**: Every decision is a `.md` file you can read.
 - **Agnostic**: It doesn't matter if you use Cursor, Windsurf, or Claude CLI. They all read the same `.devos` folder.
