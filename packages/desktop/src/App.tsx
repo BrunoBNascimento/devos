@@ -15,8 +15,9 @@ function App() {
 
   // Dashboards State
   const [metrics, setMetrics] = useState<any[]>([]);
-  const [knowledgeFiles, setKnowledgeFiles] = useState<string[]>([]);
-  const [pendingTasks, setPendingTasks] = useState<string[]>([]);
+  const [knowledgeFiles, setKnowledgeFiles] = useState<any[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<any[]>([]);
+  const [transcripts, setTranscripts] = useState<any[]>([]);
 
   // Crawler State
   const [crawlerStatus, setCrawlerStatus] = useState('idle');
@@ -63,6 +64,9 @@ function App() {
       
       const p = await (window as any).devosAPI.readPendingTasks();
       if (p.success) setPendingTasks(p.files);
+
+      const t = await (window as any).devosAPI.readTranscripts();
+      if (t.success) setTranscripts(t.files);
     }
     setTimeout(() => setIsRefreshing(false), 500);
   };
@@ -198,46 +202,138 @@ function App() {
     );
   };
 
-  const renderKnowledgeTab = () => (
-    <div className="flex-1 p-8 overflow-y-auto flex gap-8 bg-slate-900">
-      <div className="flex-1">
-        <h1 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-          <Inbox className="text-blue-500" /> Pending Workflows
-        </h1>
-        <p className="text-slate-400 text-sm mb-6">Active state artifacts stored in `.devos/memory/state/`.</p>
-        <div className="space-y-3">
-          {pendingTasks.length === 0 ? <p className="text-slate-500 text-sm italic">No pending tasks in memory.</p> : pendingTasks.map(f => (
-            <div key={f} className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between hover:border-slate-700 transition-colors">
-              <div className="flex items-center gap-3">
-                <FileText className="w-5 h-5 text-slate-400" />
-                <span className="text-slate-200">{f}</span>
+  const renderKnowledgeTab = () => {
+    // Categorize knowledge
+    const gotchas = knowledgeFiles.filter(f => f.metadata?.type === 'gotcha');
+    const conventions = knowledgeFiles.filter(f => f.metadata?.type === 'convention');
+    const plans = knowledgeFiles.filter(f => f.metadata?.type === 'plan');
+    const runbooks = knowledgeFiles.filter(f => f.metadata?.type === 'runbook');
+    const contracts = knowledgeFiles.filter(f => f.metadata?.type === 'contract');
+
+    const getPhaseColor = (phase: string) => {
+      switch(phase) {
+        case 'completed': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        case 'developing': return 'bg-blue-500/10 text-blue-400 border-blue-500/20';
+        case 'reviewing': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        default: return 'bg-slate-800 text-slate-400 border-slate-700';
+      }
+    };
+
+    return (
+      <div className="flex-1 p-8 overflow-y-auto bg-slate-900">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+              <Brain className="text-indigo-500" /> Insights & Intelligence
+            </h1>
+            <p className="text-slate-400 text-sm mt-1">Real-time observability into team knowledge, active context, and traps.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-12 gap-8">
+          
+          {/* Main Column: Workflows & Daily Prep */}
+          <div className="col-span-8 flex flex-col gap-8">
+            
+            {/* Active Workflows */}
+            <section>
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Inbox className="w-5 h-5 text-blue-500" /> Active State
+              </h2>
+              <div className="grid gap-4">
+                {pendingTasks.length === 0 ? (
+                  <p className="text-slate-500 text-sm italic p-4 bg-slate-950/50 rounded-xl border border-slate-800/50">No active state files found.</p>
+                ) : pendingTasks.map(f => (
+                  <div key={f.filename} className="p-5 bg-slate-950 border border-slate-800 rounded-2xl hover:border-slate-700 transition-all shadow-lg">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h3 className="text-slate-200 font-medium text-lg leading-tight">{f.title || f.filename}</h3>
+                        <div className="flex gap-2 mt-2">
+                          <span className={`text-xs px-2.5 py-1 rounded-full border ${getPhaseColor(f.metadata?.phase)} uppercase tracking-wider font-semibold`}>
+                            {f.metadata?.phase || 'draft'}
+                          </span>
+                          <span className="text-xs px-2.5 py-1 rounded-full border border-slate-700 bg-slate-800 text-slate-400">
+                            {f.metadata?.type || 'unknown'}
+                          </span>
+                        </div>
+                      </div>
+                      {f.metadata?.last_updated && (
+                        <div className="text-xs text-slate-500 flex items-center gap-1 bg-slate-900 px-2 py-1 rounded-md border border-slate-800">
+                          <Clock className="w-3 h-3" /> {f.metadata.last_updated}
+                        </div>
+                      )}
+                    </div>
+                    {f.summary && <p className="text-sm text-slate-400 leading-relaxed border-t border-slate-800/50 pt-3">{f.summary}</p>}
+                  </div>
+                ))}
               </div>
-              <span className="text-xs bg-slate-800 text-slate-400 px-3 py-1 rounded-full border border-slate-700">
-                Phase: Draft
-              </span>
-            </div>
-          ))}
+            </section>
+
+            {/* Daily Prep / Transcripts */}
+            <section>
+              <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-amber-500" /> Meeting Notes & Transcripts
+              </h2>
+              <div className="grid gap-4">
+                {transcripts.length === 0 ? (
+                  <p className="text-slate-500 text-sm italic p-4 bg-slate-950/50 rounded-xl border border-slate-800/50">No transcripts found. Perfect for Daily prep.</p>
+                ) : transcripts.map(f => (
+                  <div key={f.filename} className="p-4 bg-slate-950 border border-slate-800 rounded-xl hover:border-slate-700 transition-all shadow-sm">
+                    <h3 className="text-slate-200 font-medium mb-2">{f.title || f.filename}</h3>
+                    {f.summary && <p className="text-sm text-slate-400 line-clamp-2">{f.summary}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+            
+          </div>
+
+          {/* Right Column: Gotchas & Knowledge */}
+          <div className="col-span-4 flex flex-col gap-8">
+            
+            {/* Active Alerts / Gotchas */}
+            <section>
+              <h2 className="text-lg font-semibold text-rose-400 mb-4 flex items-center gap-2">
+                <Database className="w-5 h-5" /> Active Traps (Gotchas)
+              </h2>
+              <div className="grid gap-3">
+                {gotchas.length === 0 ? (
+                  <p className="text-slate-500 text-sm italic">No gotchas recorded.</p>
+                ) : gotchas.map(f => (
+                  <div key={f.filename} className="p-4 bg-rose-950/20 border border-rose-900/50 rounded-xl">
+                    <h3 className="text-rose-200 font-medium text-sm mb-2">{f.title || f.filename}</h3>
+                    {f.summary && <p className="text-xs text-rose-300/80 leading-relaxed">{f.summary}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* Conventions & Runbooks */}
+            <section>
+              <h2 className="text-lg font-semibold text-emerald-400 mb-4 flex items-center gap-2">
+                <Brain className="w-5 h-5" /> Conventions & Playbooks
+              </h2>
+              <div className="grid gap-3">
+                {[...conventions, ...runbooks, ...contracts, ...plans].map(f => (
+                  <div key={f.filename} className="p-3 bg-slate-950 border border-slate-800 rounded-xl flex flex-col gap-2">
+                    <div className="flex justify-between items-start">
+                       <h3 className="text-slate-300 text-sm font-medium line-clamp-1">{f.title || f.filename}</h3>
+                       <span className="text-[10px] uppercase tracking-wide bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700">
+                         {f.metadata?.type || 'kb'}
+                       </span>
+                    </div>
+                    {f.summary && <p className="text-xs text-slate-500 line-clamp-2">{f.summary}</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+          </div>
+
         </div>
       </div>
-      
-      <div className="flex-1">
-        <h1 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-          <Brain className="text-emerald-500" /> Knowledge Base
-        </h1>
-        <p className="text-slate-400 text-sm mb-6">Context automatically fetched from `.devos/memory/brain_kb/`.</p>
-        <div className="space-y-3">
-          {knowledgeFiles.length === 0 ? <p className="text-slate-500 text-sm italic">No knowledge files indexed.</p> : knowledgeFiles.map(f => (
-            <div key={f} className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Database className="w-5 h-5 text-emerald-600/50" />
-                <span className="text-slate-300">{f}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderConfigTab = () => (
     <div className="flex-1 flex flex-col bg-slate-900">

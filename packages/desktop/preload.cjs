@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('devosAPI', {
   readMetrics: () => ipcRenderer.invoke('devos:readMetrics'),
   readKnowledge: () => ipcRenderer.invoke('devos:readKnowledge'),
   readPendingTasks: () => ipcRenderer.invoke('devos:readPendingTasks'),
+  readTranscripts: () => ipcRenderer.invoke('devos:readTranscripts'),
   
   syncIntegrations: (useWsl, engine) => ipcRenderer.invoke('devos:syncIntegrations', { useWsl, engine }),
   setSyncInterval: (interval) => ipcRenderer.invoke('devos:setSyncInterval', interval),
