@@ -29,14 +29,16 @@ function runSyncIntegrations(useWsl = false, engine = 'claude') {
 
   let command = engine === 'claude' ? 'claude' : 'gemini';
   let args = ['-p', `Run /devos.metrics.`];
+  let isShell = true;
   
   if (useWsl && process.platform === 'win32') {
-    args = ['--', 'sh', '-c', `zsh -ic '${command} -p "Run /devos.metrics."' || bash -ic '${command} -p "Run /devos.metrics."'`];
+    args = ['--', 'sh', '-c', `zsh -ic '${command} -p "Run /devos.metrics." < /dev/null' || bash -ic '${command} -p "Run /devos.metrics." < /dev/null'`];
     command = 'wsl';
+    isShell = false;
   }
 
   const cwd = path.resolve(process.cwd(), '../../');
-  const child = spawn(command, args, { cwd, shell: true });
+  const child = spawn(command, args, { cwd, shell: isShell });
 
   child.on('close', (code) => {
     crawlerStatus = 'idle';
@@ -89,16 +91,18 @@ ipcMain.handle('devos:execute', async (event, { task, engine, useWsl }) => {
   return new Promise((resolve, reject) => {
     let command = engine === 'claude' ? 'claude' : 'gemini';
     let args = ['-p', `Run /devos.develop for Jira Task ${task}. Use DevOS Orchestrator persona.`];
+    let isShell = true;
     
-    if (useWsl) {
-      const taskEscaped = task.replace(/"/g, '\\"');
-      const innerCmd = `${command} -p "Run /devos.develop for Jira Task ${taskEscaped}. Use DevOS Orchestrator persona."`;
+    if (useWsl && process.platform === 'win32') {
+      const taskEscaped = task.replace(/"/g, '\\"').replace(/'/g, "'\\''");
+      const innerCmd = `${command} -p "${taskEscaped} (DevOS Orchestrator)" < /dev/null`;
       args = ['--', 'sh', '-c', `zsh -ic '${innerCmd}' || bash -ic '${innerCmd}'`];
       command = 'wsl';
+      isShell = false; // Bypass cmd.exe quoting corruption
     }
     
     const cwd = path.resolve(process.cwd(), '../../');
-    const child = spawn(command, args, { cwd, shell: true });
+    const child = spawn(command, args, { cwd, shell: isShell });
     activeChild = child;
     
     let output = '';
@@ -164,8 +168,12 @@ ipcMain.handle('devos:getCrawlerStatus', async () => {
 ipcMain.handle('devos:readConfig', async () => {
   try {
     const configPath = path.resolve(process.cwd(), '../../.devos/config.yaml');
+    const examplePath = path.resolve(process.cwd(), '../../.devos/config.example.yaml');
+    
     if (fs.existsSync(configPath)) {
       return { success: true, content: fs.readFileSync(configPath, 'utf8') };
+    } else if (fs.existsSync(examplePath)) {
+      return { success: true, content: fs.readFileSync(examplePath, 'utf8') };
     }
     return { success: false, error: 'Config file not found.' };
   } catch (err) {

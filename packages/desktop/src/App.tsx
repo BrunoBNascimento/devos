@@ -237,14 +237,14 @@ function App() {
         </div>
       </div>
 
-      <div className="flex-1 flex pt-16">
+      <div className="flex-1 flex pt-16 min-h-0">
         <div className="flex-1 relative bg-slate-900">
           <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView colorMode="dark">
             <Background color="#334155" gap={16} />
             <Controls className="bg-slate-800 border-slate-700 fill-slate-300" />
           </ReactFlow>
         </div>
-        <div className="w-96 border-l border-slate-800 bg-slate-950 flex flex-col">
+        <div className="w-96 border-l border-slate-800 bg-slate-950 flex flex-col min-h-0">
           <div className="p-4 border-b border-slate-800 flex items-center gap-2 font-medium text-sm text-slate-300">
             <Terminal className="w-4 h-4 text-slate-500" /> Execution Logs
           </div>
