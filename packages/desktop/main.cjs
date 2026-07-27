@@ -10,7 +10,7 @@ let crawlerStatus = 'idle';
 let lastSync = null;
 let syncIntervalId = null;
 let syncIntervalValue = 'off';
-let activeChild = null; // for main workflow
+// activeChild removed since execution is now via CLI
 
 function broadcastCrawlerState() {
   if (mainWindow) {
@@ -82,56 +82,8 @@ app.on('window-all-closed', function () {
 });
 
 
-// IPC handler to execute the DevOS command via child process
-ipcMain.handle('devos:execute', async (event, { task, engine, useWsl }) => {
-  if (activeChild) {
-    return { success: false, error: 'A task is already running.' };
-  }
-
-  return new Promise((resolve, reject) => {
-    let command = engine === 'claude' ? 'claude' : 'gemini';
-    let args = ['-p', `Run /devos.develop for Jira Task ${task}. Use DevOS Orchestrator persona.`];
-    let isShell = true;
-    
-    if (useWsl && process.platform === 'win32') {
-      const taskEscaped = task.replace(/"/g, '\\"').replace(/'/g, "'\\''");
-      const innerCmd = `${command} -p "${taskEscaped} (DevOS Orchestrator)" < /dev/null`;
-      args = ['--', 'sh', '-c', `zsh -ic '${innerCmd}' || bash -ic '${innerCmd}'`];
-      command = 'wsl';
-      isShell = false; // Bypass cmd.exe quoting corruption
-    }
-    
-    const cwd = path.resolve(process.cwd(), '../../');
-    const child = spawn(command, args, { cwd, shell: isShell });
-    activeChild = child;
-    
-    let output = '';
-    
-    child.stdout.on('data', (data) => {
-      output += data.toString();
-      event.sender.send('devos:stream', data.toString());
-    });
-
-    child.stderr.on('data', (data) => {
-      output += data.toString();
-      event.sender.send('devos:stream', data.toString());
-    });
-
-    child.on('close', (code) => {
-      activeChild = null;
-      resolve({ success: code === 0, output, code });
-    });
-  });
-});
-
-ipcMain.handle('devos:stop', async () => {
-  if (activeChild) {
-    activeChild.kill();
-    activeChild = null;
-    return { success: true };
-  }
-  return { success: false, error: 'No active task to stop.' };
-});
+// Execution orchestration is now strictly handled via terminal CLI.
+// DevOS Desktop acts purely as a Control Plane Observability Dashboard.
 
 ipcMain.handle('devos:syncIntegrations', async (event, { useWsl, engine }) => {
   runSyncIntegrations(useWsl, engine);
