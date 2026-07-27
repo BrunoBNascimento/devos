@@ -10,7 +10,7 @@ It uses a dual-architecture design:
 
 ## 1. Installation (The Workspace Orchestrator)
 
-DevOS is designed to manage **multiple repositories simultaneously**. You do not install it *inside* a single project; you install it in a master workspace directory.
+DevOS is designed to manage **multiple repositories simultaneously**. Install it in a master workspace directory, not inside a single project.
 
 Run the CLI scaffolder to initialize your DevOS brain:
 
@@ -19,18 +19,24 @@ npx create-devos my-workspace
 cd my-workspace
 ```
 
-This generates a `.devos/` folder containing:
-- `config.yaml`: Here you will define `workspace.repo_directories: ["../frontend", "../backend"]` to point the AI to your actual codebases.
-- `workflows/`: The markdown orchestrator steps.
-- `system_prompts/`: Persona definitions (Planners, Reviewers).
-- `memory/`: Where the AI stores state, logs, and its permanent `brain_kb` (Knowledge Base).
+### The Setup Wizard
+DevOS is driven entirely by AI CLIs (like Claude Code or Cursor). **You do not need to hand-edit YAML files.**
+Simply tell your AI to run the setup workflow:
 
-### Usage
-DevOS is driven entirely by standard AI CLIs. Navigate to your workspace folder and tell your AI to run a workflow:
+```bash
+claude -p "Run /devos.setup"
+```
+
+The AI will interactively:
+1. Scan your disk for git repositories (up to 3 levels deep).
+2. Detect your tech stacks, frameworks, and package managers (e.g., Next.js, Django, Poetry).
+3. Discover your existing MCP servers (Jira, GitHub, Slack) and securely authenticate them.
+4. Auto-generate your `.devos/config.yaml` and `.devos/mcps.json` tailored perfectly to your workspace.
+
+Once setup is complete, trigger your daily cycle to orchestrate tasks across all your repositories:
 ```bash
 claude -p "Run /devos.daily"
 ```
-The AI will read the Orchestrator rules, scan all repositories defined in your `config.yaml`, and perform cross-repo knowledge fusion and epic planning.
 
 ---
 
