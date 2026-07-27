@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('devosAPI', {
     ipcRenderer.removeAllListeners('devos:crawlerState');
     ipcRenderer.on('devos:crawlerState', (_event, state) => callback(state));
   },
+  onCrawlerStream: (callback) => ipcRenderer.on('devos:crawlerStream', (_event, value) => callback(value)),
   
   isWindows: process.platform === 'win32',
 });

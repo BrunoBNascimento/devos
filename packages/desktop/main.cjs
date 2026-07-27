@@ -28,17 +28,25 @@ function runSyncIntegrations(useWsl = false, engine = 'claude') {
   broadcastCrawlerState();
 
   let command = engine === 'claude' ? 'claude' : 'gemini';
-  let args = ['-p', `Run /devos.metrics.`];
+  let args = ['-p', `Run /devos.daily.`];
   let isShell = true;
   
   if (useWsl && process.platform === 'win32') {
-    args = ['--', 'sh', '-c', `zsh -ic '${command} -p "Run /devos.metrics." < /dev/null' || bash -ic '${command} -p "Run /devos.metrics." < /dev/null'`];
+    args = ['--', 'sh', '-c', `zsh -ic '${command} -p "Run /devos.daily." < /dev/null' || bash -ic '${command} -p "Run /devos.daily." < /dev/null'`];
     command = 'wsl';
     isShell = false;
   }
 
   const cwd = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos';
   const child = spawn(command, args, { cwd, shell: isShell });
+
+  child.stdout.on('data', (data) => {
+    if (mainWindow) mainWindow.webContents.send('devos:crawlerStream', data.toString());
+  });
+
+  child.stderr.on('data', (data) => {
+    if (mainWindow) mainWindow.webContents.send('devos:crawlerStream', data.toString());
+  });
 
   child.on('close', (code) => {
     crawlerStatus = 'idle';
@@ -200,6 +208,7 @@ function parseMd(filePath) {
       if (parsed.summary.length > 150) parsed.summary = parsed.summary.substring(0, 147) + '...';
     }
     
+    parsed.body = body.trim();
     return parsed;
   } catch (err) {
     return { filename: filePath.split(/[\\/]/).pop(), title: 'Error', summary: '', metadata: {} };
