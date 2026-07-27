@@ -10,10 +10,10 @@ It uses a dual-architecture design:
 
 DevOS is designed to manage **multiple repositories simultaneously**. Install it in a master workspace directory, not inside a single project.
 
-Run the CLI scaffolder to initialize your DevOS brain:
+Run the installation script in your terminal:
 
 ```bash
-npx create-devos my-workspace
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/BrunoBNascimento/devos/main/install.sh)" my-workspace
 cd my-workspace
 ```
 
