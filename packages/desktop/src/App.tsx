@@ -12,7 +12,7 @@ import '@xyflow/react/dist/style.css';
 import { 
   Play, Square, Terminal, Box, Search, Settings, 
   Activity, Brain, Inbox, ToggleLeft, ToggleRight,
-  Database, FileText, Save, LayoutDashboard 
+  Database, FileText, Save, LayoutDashboard, RefreshCw, Clock
 } from 'lucide-react';
 
 const initialNodes: Node[] = [
@@ -54,6 +54,11 @@ function App() {
   const [knowledgeFiles, setKnowledgeFiles] = useState<string[]>([]);
   const [pendingTasks, setPendingTasks] = useState<string[]>([]);
 
+  // Crawler State
+  const [crawlerStatus, setCrawlerStatus] = useState('idle');
+  const [lastSync, setLastSync] = useState<string | null>(null);
+  const [syncInterval, setSyncInterval] = useState('off');
+
   // Init
   useEffect(() => {
     if ((window as any).devosAPI?.isWindows) {
@@ -61,6 +66,25 @@ function App() {
       setUseWsl(true);
     }
     fetchData();
+
+    if ((window as any).devosAPI) {
+      (window as any).devosAPI.getCrawlerStatus().then((s: any) => {
+        setCrawlerStatus(s.status);
+        setLastSync(s.lastSync);
+        setSyncInterval(s.interval);
+      });
+
+      (window as any).devosAPI.onCrawlerState((state: any) => {
+        setCrawlerStatus(state.status);
+        setLastSync(state.lastSync);
+        setSyncInterval(state.interval);
+        
+        // If it just finished syncing, auto-refresh metrics
+        if (state.status === 'idle' && state.lastSync) {
+          fetchData();
+        }
+      });
+    }
   }, []);
 
   const fetchData = async () => {
@@ -78,6 +102,18 @@ function App() {
       
       const p = await (window as any).devosAPI.readPendingTasks();
       if (p.success) setPendingTasks(p.files);
+    }
+  };
+
+  const handleSyncIntegrations = async () => {
+    if ((window as any).devosAPI) {
+      await (window as any).devosAPI.syncIntegrations(useWsl, engine);
+    }
+  };
+
+  const handleChangeInterval = async (interval: string) => {
+    if ((window as any).devosAPI) {
+      await (window as any).devosAPI.setSyncInterval(interval);
     }
   };
 
@@ -226,33 +262,83 @@ function App() {
     </div>
   );
 
-  const renderMetricsTab = () => (
-    <div className="flex-1 p-8 overflow-y-auto">
-      <h1 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-        <Activity className="text-purple-500" /> DORA Metrics
-      </h1>
-      <div className="grid grid-cols-3 gap-6">
-        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <div className="text-slate-400 text-sm font-medium mb-2">Lead Time for Changes</div>
-          <div className="text-3xl font-bold text-white">
-            {metrics.length > 0 ? metrics[metrics.length-1]?.lead_time || 'N/A' : 'No Data'}
+  const renderMetricsTab = () => {
+    let lastSyncStr = "Never";
+    if (lastSync) {
+      const d = new Date(lastSync);
+      lastSyncStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    return (
+      <div className="flex-1 p-8 overflow-y-auto flex flex-col gap-8">
+        
+        {/* Integrations Crawler Panel */}
+        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${crawlerStatus === 'syncing' ? 'bg-blue-500/20 text-blue-400 animate-pulse' : 'bg-slate-800 text-slate-400'}`}>
+              <RefreshCw className={`w-5 h-5 ${crawlerStatus === 'syncing' ? 'animate-spin' : ''}`} />
+            </div>
+            <div>
+              <h2 className="text-white font-semibold">Integrations Sync</h2>
+              <div className="text-sm text-slate-400 flex items-center gap-2">
+                <Clock className="w-3 h-3" /> Last synced: {lastSyncStr}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-6">
+            <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+              {['off', '30m', '1h', '4h'].map(opt => (
+                <button
+                  key={opt}
+                  onClick={() => handleChangeInterval(opt)}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${syncInterval === opt ? 'bg-slate-700 text-white shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  {opt.toUpperCase()}
+                </button>
+              ))}
+            </div>
+            
+            <button
+              onClick={handleSyncIntegrations}
+              disabled={crawlerStatus === 'syncing'}
+              className="bg-slate-800 hover:bg-slate-700 disabled:bg-slate-900 disabled:text-slate-600 text-slate-200 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 border border-slate-700"
+            >
+              <RefreshCw className={`w-4 h-4 ${crawlerStatus === 'syncing' ? 'animate-spin text-blue-500' : ''}`} />
+              {crawlerStatus === 'syncing' ? 'Syncing...' : 'Sync Now'}
+            </button>
           </div>
         </div>
-        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <div className="text-slate-400 text-sm font-medium mb-2">Deployment Frequency</div>
-          <div className="text-3xl font-bold text-white">
-            {metrics.length > 0 ? metrics[metrics.length-1]?.deploy_frequency || 'N/A' : 'No Data'}
-          </div>
-        </div>
-        <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <div className="text-slate-400 text-sm font-medium mb-2">Mean Time To Recovery</div>
-          <div className="text-3xl font-bold text-white">
-            {metrics.length > 0 ? metrics[metrics.length-1]?.mttr || 'N/A' : 'No Data'}
+
+        {/* DORA Metrics Grid */}
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+            <Activity className="text-purple-500" /> DORA Metrics
+          </h1>
+          <div className="grid grid-cols-3 gap-6">
+            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
+              <div className="text-slate-400 text-sm font-medium mb-2">Lead Time for Changes</div>
+              <div className="text-3xl font-bold text-white">
+                {metrics.length > 0 ? metrics[metrics.length-1]?.lead_time || 'N/A' : 'No Data'}
+              </div>
+            </div>
+            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
+              <div className="text-slate-400 text-sm font-medium mb-2">Deployment Frequency</div>
+              <div className="text-3xl font-bold text-white">
+                {metrics.length > 0 ? metrics[metrics.length-1]?.deploy_frequency || 'N/A' : 'No Data'}
+              </div>
+            </div>
+            <div className="bg-slate-950 border border-slate-800 rounded-2xl p-6 shadow-xl">
+              <div className="text-slate-400 text-sm font-medium mb-2">Mean Time To Recovery</div>
+              <div className="text-3xl font-bold text-white">
+                {metrics.length > 0 ? metrics[metrics.length-1]?.mttr || 'N/A' : 'No Data'}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderKnowledgeTab = () => (
     <div className="flex-1 p-8 overflow-y-auto flex gap-8">
