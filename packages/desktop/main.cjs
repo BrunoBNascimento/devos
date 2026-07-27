@@ -37,7 +37,7 @@ function runSyncIntegrations(useWsl = false, engine = 'claude') {
     isShell = false;
   }
 
-  const cwd = path.resolve(process.cwd(), '../../');
+  const cwd = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos';
   const child = spawn(command, args, { cwd, shell: isShell });
 
   child.on('close', (code) => {
@@ -119,8 +119,8 @@ ipcMain.handle('devos:getCrawlerStatus', async () => {
 
 ipcMain.handle('devos:readConfig', async () => {
   try {
-    const configPath = path.resolve(process.cwd(), '../../.devos/config.yaml');
-    const examplePath = path.resolve(process.cwd(), '../../.devos/config.example.yaml');
+    const configPath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\config.yaml';
+    const examplePath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\config.example.yaml';
     
     if (fs.existsSync(configPath)) {
       return { success: true, content: fs.readFileSync(configPath, 'utf8') };
@@ -135,7 +135,7 @@ ipcMain.handle('devos:readConfig', async () => {
 
 ipcMain.handle('devos:saveConfig', async (event, content) => {
   try {
-    const configPath = path.resolve(process.cwd(), '../../.devos/config.yaml');
+    const configPath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\config.yaml';
     fs.writeFileSync(configPath, content, 'utf8');
     return { success: true };
   } catch (err) {
@@ -145,7 +145,7 @@ ipcMain.handle('devos:saveConfig', async (event, content) => {
 
 ipcMain.handle('devos:readMetrics', async () => {
   try {
-    const metricsPath = path.resolve(process.cwd(), '../../.devos/memory/metrics/dora.json');
+    const metricsPath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\memory\\metrics\\dora.json';
     if (fs.existsSync(metricsPath)) {
       return { success: true, content: fs.readFileSync(metricsPath, 'utf8') };
     }
@@ -157,7 +157,7 @@ ipcMain.handle('devos:readMetrics', async () => {
 
 ipcMain.handle('devos:readKnowledge', async () => {
   try {
-    const kbPath = path.resolve(process.cwd(), '../../.devos/memory/brain_kb');
+    const kbPath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\memory\\brain_kb';
     if (fs.existsSync(kbPath)) {
       const files = fs.readdirSync(kbPath).filter(f => f.endsWith('.md'));
       return { success: true, files };
@@ -170,7 +170,7 @@ ipcMain.handle('devos:readKnowledge', async () => {
 
 ipcMain.handle('devos:readPendingTasks', async () => {
   try {
-    const statePath = path.resolve(process.cwd(), '../../.devos/memory/state');
+    const statePath = '\\\\wsl.localhost\\Ubuntu\\home\\bruno_benicio\\devos\\.devos\\memory\\state';
     if (fs.existsSync(statePath)) {
       const files = fs.readdirSync(statePath).filter(f => f.endsWith('.md'));
       return { success: true, files };
