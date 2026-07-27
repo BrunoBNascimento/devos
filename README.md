@@ -40,7 +40,7 @@ claude -p "Run /devos.daily"
 
 ## 2. The Control Plane (Desktop App)
 
-![DevOS Control Plane Dashboard](https://via.placeholder.com/800x450.png?text=DevOS+Control+Plane+Dashboard)
+![DevOS Control Plane Dashboard](./assets/printscreen.png)
 *Visualizing the Agnostic Knowledge Fusion pipeline in real-time.*
 
 To view your Tactical Daily Digest and monitor the Crawler's background sync, download the **DevOS Control Plane**:
