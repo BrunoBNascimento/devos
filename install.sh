@@ -14,7 +14,7 @@ mkdir -p "$WORKSPACE_DIR"
 cd "$WORKSPACE_DIR"
 
 echo "📂 Downloading DevOS core framework..."
-curl -sL https://github.com/BrunoBNascimento/devos/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1 devos-main/.devos
+curl -sL https://github.com/BrunoBNascimento/devos/archive/refs/heads/main.tar.gz | tar -xz --strip-components=1
 
 echo ""
 echo "✅ Installation complete!"
