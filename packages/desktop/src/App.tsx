@@ -158,7 +158,7 @@ function App() {
             className="bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white px-5 py-2.5 rounded-xl font-semibold transition-all flex items-center gap-2 shadow-lg shadow-blue-900/20"
           >
             <RefreshCw className={`w-4 h-4 ${crawlerStatus === 'syncing' ? 'animate-spin' : ''}`} />
-            {crawlerStatus === 'syncing' ? 'Fusing Knowledge...' : 'Run /devos.daily'}
+            {crawlerStatus === 'syncing' ? 'Fusing Knowledge...' : 'Run /devos.start'}
           </button>
         </div>
 
@@ -305,7 +305,7 @@ function App() {
         {isLogsOpen && (
           <div className="h-[calc(100%-2.5rem)] overflow-y-auto p-4 font-mono text-xs text-slate-400 leading-relaxed custom-scrollbar">
             {logs.length === 0 ? (
-              <span className="text-slate-600 italic">Run `/devos.daily` to see agent thoughts here...</span>
+              <span className="text-slate-600 italic">Run `/devos.start` to see agent thoughts here...</span>
             ) : (
               logs.map((log, i) => (
                 <div key={i} className="whitespace-pre-wrap mb-1 break-words">{log}</div>

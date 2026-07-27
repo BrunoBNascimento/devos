@@ -1,7 +1,7 @@
-# Start Workflow -- Context Ingestion and Correlation Engine
+# Start Workflow — Daily Tactical Digest
 
 > **Trigger:** `/devos.start`
-> **Purpose:** Ingest raw context from all configured integrations, correlate signals across sources, run workspace discovery, and produce a comprehensive draft artifact ready for development.
+> **Purpose:** Ingest raw context from all configured integrations, correlate signals across sources, consult the Brain KB, and produce a **Daily Tactical Digest** — a panoramic view of everything happening across your workspace.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@
 
 **Action:** Read `integrations` from `config.yaml` and pull context from ALL enabled sources in parallel.
 
-### 1.1 -- Jira
+### 1.1 — Jira
 
 Read `integrations.jira` from config. If enabled:
 
@@ -27,7 +27,7 @@ Read `integrations.jira` from config. If enabled:
 6. Cap at `max_tickets` (default: 25).
 7. Store each ticket with: key, title, status, description, comments, labels, assignee, sprint.
 
-### 1.2 -- Slack
+### 1.2 — Slack
 
 Read `integrations.slack` from config. If enabled:
 
@@ -38,7 +38,7 @@ Read `integrations.slack` from config. If enabled:
    - Cap at `max_messages_per_channel` (default: 100).
 3. Store each message with: channel, timestamp, author, content, thread replies.
 
-### 1.3 -- Meeting Notes / Transcripts
+### 1.3 — Meeting Notes / Transcripts
 
 Read `integrations.meeting_notes` from config. If enabled:
 
@@ -49,7 +49,7 @@ Read `integrations.meeting_notes` from config. If enabled:
 3. Cap at `max_transcripts` (default: 10).
 4. Store each transcript with: date, participants, duration, content, action items (if detectable).
 
-### 1.4 -- GitHub
+### 1.4 — GitHub
 
 Read `integrations.github` from config. If enabled:
 
@@ -59,7 +59,7 @@ Read `integrations.github` from config. If enabled:
 4. Cap at `max_items_per_source` (default: 20).
 5. Store each item with: type, title, body, URL, labels, assignees.
 
-### 1.5 -- Ingestion Report
+### 1.5 — Ingestion Report
 
 Output a summary:
 
@@ -75,19 +75,13 @@ Ingestion Report:
 
 If any integration fails, log the error but do NOT halt. Continue with available data.
 
-### 1.6 -- User-Provided Context
-
-After automated ingestion, prompt:
-
-> "Context ingestion complete. I pulled data from the sources above. Do you have additional context? You can describe the task, paste content, reference a file, or type 'none' if everything is covered."
-
 ---
 
 ## Step 2: Cross-Source Correlation
 
-**Action:** This is the intelligence layer. Analyze ALL ingested data and identify correlated signals that point to the same work item.
+**Action:** Analyze ALL ingested data and identify correlated signals that point to the same work items.
 
-### 2.1 -- Signal Extraction
+### 2.1 — Signal Extraction
 
 From each source, extract semantic signals:
 
@@ -97,9 +91,8 @@ From each source, extract semantic signals:
 | Slack | Topic keywords, mentioned ticket keys, user intents, decisions made, action items |
 | Transcripts | Discussion topics, decisions, action items, assigned owners, mentioned ticket keys |
 | GitHub | Issue titles, PR descriptions, linked tickets, technical terms |
-| User input | Explicit task description, referenced files, keywords |
 
-### 2.2 -- Correlation Matrix
+### 2.2 — Correlation Matrix
 
 Build a correlation matrix by matching signals across sources:
 
@@ -110,187 +103,115 @@ Build a correlation matrix by matching signals across sources:
 
 For each correlated cluster, compute a **confidence score** (0.0 to 1.0) based on the number and strength of matching signals.
 
-### 2.3 -- Cluster Ranking
+### 2.3 — Cluster Ranking
 
 Rank correlated clusters by:
 1. **Confidence score** (strongest correlations first).
 2. **Recency** (more recent activity ranks higher).
 3. **Urgency signals** (Jira priority, Slack channel purpose, explicit deadlines).
 
-### 2.4 -- Correlation Report
+---
 
-Output the top correlated clusters:
+## Step 3: Knowledge Extraction
 
-```
-Correlation Report:
-| Rank | Topic          | Confidence | Sources                                      |
-|------|----------------|------------|----------------------------------------------|
-| 1    | Login Feature  | 0.92       | Jira:PROJ-45, Slack:#engineering, Transcript:refinement_0724 |
-| 2    | API Migration  | 0.67       | Jira:PROJ-51, GitHub:issue#23                |
-| 3    | ...            | ...        | ...                                          |
-```
+**Action:** Scan `.devos/memory/brain_kb/` for recently added entries and identify new knowledge that emerged from the correlated context.
 
-If only one cluster has high confidence (>0.8), auto-select it as the target task.
-If multiple clusters have similar confidence, present them to the user and ask which to proceed with.
-If no clusters are found, fall back to user-provided context only.
+### 3.1 — New Knowledge Detection
+
+Analyze the correlated clusters for:
+- **Decisions made** in meetings or Slack that establish new conventions or rules.
+- **Gotchas discovered** in PR reviews or GitHub issues that should be persisted.
+- **Blockers identified** that require human action.
+
+### 3.2 — Brain KB Cross-Reference
+
+Check if any of the detected knowledge already exists in `brain_kb/`. Only surface entries that are new or have updated context.
 
 ---
 
-## Step 3: Workspace Discovery
+## Step 4: Classify Active Items
 
-**Action:** Scan the workspace to understand the codebase before drafting.
+**Action:** Categorize all correlated items by their development readiness.
 
-### 3.1 -- Structural Scan
+### 4.1 — Status Classification
 
-1. Read `workspace.repo_directories` from `config.yaml`.
-2. Recursively scan, respecting `.devosignore` patterns.
-3. Build a structural map:
-   - Top-level directories and their purpose.
-   - Key config files (`package.json`, `pyproject.toml`, `Cargo.toml`, etc.).
-   - Tech stack, frameworks, and languages detected.
-   - Existing test structure and coverage tooling.
-   - Documentation files (README, CONTRIBUTING, API docs).
+For each correlated cluster, determine its current status:
 
-### 3.2 -- Scope Mapping
+| Status | Criteria |
+|---|---|
+| **Ready for Development** | Has clear requirements, no blockers, assigned or unassigned |
+| **Blocked** | Waiting on external input, missing credentials, dependency on another team |
+| **In Progress** | Already has an active branch, open PR, or ongoing work |
+| **Needs Clarification** | Contradictions between sources, ambiguous requirements |
+| **Review Required** | Open PR waiting for your review, or code review requested |
 
-Cross-reference the workspace map with the correlated task context:
-- Identify which directories, modules, and files are likely affected.
-- Flag any areas with high churn (recently modified files related to the scope).
-- Note dependencies that may be impacted.
+### 4.2 — Action Items Extraction
 
-### 3.3 -- Discovery Report
-
-```markdown
-## Discovery Report
-- **Workspace Root:** <path>
-- **Tech Stack:** <detected technologies>
-- **Target Directories:** <directories relevant to scope>
-- **Key Files:** <important files identified>
-- **Test Infrastructure:** <test runner, coverage tool, current coverage>
-- **Documentation:** <existing docs that may need updating>
-```
+Identify items that require **immediate human action**:
+- PRs waiting for your review
+- Blocked tickets that need you to unblock
+- Decisions pending your input
+- Failing CI/CD pipelines on your branches
 
 ---
 
-## Step 4: Knowledge Retrieval Pipeline
+## Step 5: Generate Daily Tactical Digest
 
-**Action:** Execute the full retrieval pipeline from `config.yaml > knowledge_system` against the correlated task context.
+**Action:** Create the digest file in `.devos/memory/state/`.
 
-### 4.1 -- Enumerate and Retrieve
+**File name:** `daily_digest.md`
 
-For each KB in `knowledge_system.knowledge_bases`, retrieve up to `retrieval.top_k_per_kb` chunks relevant to the correlated task.
-
-### 4.2 -- Fusion (Weighted RRF)
-
-Merge using `fusion.algorithm`:
-
-```
-fused_score(chunk) = SUM over KBs:
-    kb.priority * (1 / (rank_in_kb + 60))
-```
-
-### 4.3 -- Rerank
-
-Apply `reranker.model` cross-encoder pass.
-
-### 4.4 -- Select Final Context
-
-Truncate to `context.final_chunks` (default: 12).
-
-### 4.5 -- Output
-
-- Include relevant gotchas in the draft under "[WARNING] Known Gotchas".
-- Add retrieval metadata documenting KBs consulted and chunks contributed.
-
----
-
-## Step 5: Generate Draft Artifact
-
-**Action:** Create a comprehensive draft in `.devos/memory/state/` combining ALL gathered intelligence.
-
-**File naming:** `draft_YYMMDD.md` (e.g., `draft_250725.md`)
+> **Important:** This file is **overwritten** on each run (not date-suffixed). It always represents the latest state. The Desktop App reads this file to render the Daily Tactical Digest view.
 
 **File Structure:**
 
 ```markdown
 ---
-phase: draft
-type: <feature|bugfix|refactor|chore|research>
-title: "<Title>"
-jira_key: "<PROJ-XXX if correlated>"
-correlation_confidence: <0.0-1.0>
-sources_correlated: [<list of source:id pairs>]
+type: digest
+title: "Daily Tactical Digest"
 created: <YYYY-MM-DD HH:MM>
 last_updated: <YYYY-MM-DD HH:MM>
 author: devos-orchestrator
+sources_consulted: [<list of source names>]
+clusters_found: <N>
 ---
 
-# <Title>
+# Daily Tactical Digest
 
-## Summary
-<2-3 sentence summary synthesized from ALL correlated sources>
+## Active Context (Merged)
+- **[<JIRA_KEY>] <Title>:** <Status>. <Synthesized summary from all correlated sources for this item.>
+- **[<JIRA_KEY>] <Title>:** <Status>. <Summary.>
 
-## Correlated Context
-### From Jira (<ticket_key>)
-- **Status:** <status>
-- **Description:** <ticket description>
-- **Key Comments:** <relevant comments>
+## Action Required
+- **[<Repo>] PR #<N>** <Title> — <What's needed from you> (Author: @<name>).
+- **[<JIRA_KEY>] <Title>** — <Why it's blocked and what you need to do.>
 
-### From Slack (<#channel>)
-- <Relevant messages and decisions>
+## New Knowledge Extracted
+- **<Topic>:** <What was learned and where it was saved in brain_kb/.>
 
-### From Meeting Transcripts (<date>)
-- <Relevant discussion points and action items>
+## Ready for Development
+- **[<JIRA_KEY>] <Title>** — <Brief scope>. Confidence: <0.0-1.0>. Sources: <list>.
+- **[<JIRA_KEY>] <Title>** — <Brief scope>. Confidence: <0.0-1.0>. Sources: <list>.
 
-### From GitHub (<issue/PR>)
-- <Relevant context>
-
-## Discovery Report
-<Output from Step 3>
-
-## Scope
-- <Affected area 1>
-- <Affected area 2>
-
-## Requirements
-- <Requirement 1 -- synthesized from all sources>
-- <Requirement 2>
-
-## Ambiguities / Open Questions
-- [?] <Question 1 -- contradictions or gaps between sources>
-- [?] <Question 2>
-
-## Constraints
-- <Constraint 1>
-
-## [WARNING] Known Gotchas
-- <Gotcha from brain_kb, with source reference>
-
-## Retrieval Metadata
-- **KBs Consulted:** <list>
-- **Chunks Used:** <count>
-
-## Raw Context
-<Original user input preserved verbatim>
+## Needs Clarification
+- **[<JIRA_KEY>] <Title>** — <What's ambiguous and which sources conflict.>
 ```
 
 ---
 
-## Step 6: Human-in-the-Loop (HITL) Gate
+## Step 6: Present Digest
 
-**Action:** Present the draft to the user and STOP.
+**Action:** Output the digest summary to the user.
 
 **Prompt:**
-> "**Draft Generated:** `memory/state/draft_YYMMDD.md`
->
-> I correlated signals from <N> sources with <confidence>% confidence.
-> The primary task appears to be: **<title>** (linked to <jira_key>).
->
-> Please review the draft. You can:
-> - **Approve** -- Type `/devos.develop` to begin development.
-> - **Edit** -- Tell me what to change.
-> - **Reject** -- I will discard and start over.
->
-> I will not proceed until you give explicit approval."
 
-[STOP] **STOP HERE. Do NOT proceed without human approval.**
+> **Daily Tactical Digest generated:** `memory/state/daily_digest.md`
+>
+> I consulted <N> sources and identified <N> correlated work items.
+>
+> **Action Required:** <count> items need your attention.
+> **Ready for Development:** <count> items are ready to go.
+>
+> To start working on a task, run `/devos.develop`.
+
+**This workflow is complete.** No HITL gate is needed — the digest is purely informational. The user decides what to do next.

@@ -1,13 +1,98 @@
 # Development Workflow — The Core Loop
 
 > **Trigger:** `/devos.develop`
-> **Purpose:** Execute the full development lifecycle from discovery to completion, with human gates at critical transitions.
+> **Purpose:** Select a task, generate a development draft, and execute the full development lifecycle from discovery to delivery — with human gates at critical transitions.
 
 ## Prerequisites
 
-- A draft artifact exists in `.devos/memory/state/` with `phase: draft` and has been **approved by the human**.
 - The Orchestrator has completed its Boot Sequence.
 - `config.yaml` is loaded and validated.
+- Recommended: Run `/devos.start` first to generate a Daily Tactical Digest with correlated context.
+
+---
+
+## Phase 0: Task Selection & Draft Generation
+
+**Objective:** Determine what to work on and create a focused draft artifact.
+
+### Actions:
+
+#### 0.1 — Read Available Context
+
+1. Check if `daily_digest.md` exists in `.devos/memory/state/`.
+2. If it exists, parse the **Ready for Development** and **Active Context (Merged)** sections to build a list of candidate tasks.
+3. Also check for any existing `draft_*.md` files with `phase: draft` (previously created but not yet developed).
+
+#### 0.2 — Present Task Options
+
+If candidates are available from the digest, present them:
+
+> **Available tasks from your Daily Digest:**
+>
+> 1. **[PROJ-123] User Authentication Flow** — Confidence: 0.92. Sources: Jira, Slack, Transcript.
+> 2. **[PROJ-156] API Rate Limiting** — Confidence: 0.78. Sources: Jira, GitHub.
+> 3. **[PROJ-189] Fix Cart Total Calculation** — Confidence: 0.65. Sources: GitHub.
+>
+> Pick a number, describe a different task, or paste context directly.
+
+If no digest exists, prompt:
+
+> **No Daily Digest found.** Describe the task you want to work on, paste a Jira ticket key, or share any relevant context. (Tip: Run `/devos.start` first for full context fusion.)
+
+#### 0.3 — Generate Draft Artifact
+
+Once a task is selected (or described), create a draft file in `.devos/memory/state/`.
+
+**File naming:** `draft_YYMMDD.md` (e.g., `draft_260726.md`)
+
+```markdown
+---
+phase: draft
+type: <feature|bugfix|refactor|chore|research>
+title: "<Title>"
+jira_key: "<PROJ-XXX if available>"
+correlation_confidence: <0.0-1.0 if from digest, null if ad-hoc>
+sources_correlated: [<list of source:id pairs>]
+created: <YYYY-MM-DD HH:MM>
+last_updated: <YYYY-MM-DD HH:MM>
+author: devos-orchestrator
+---
+
+# <Title>
+
+## Summary
+<2-3 sentence summary synthesized from all available context>
+
+## Correlated Context
+<Relevant context from each source — Jira, Slack, Transcripts, GitHub>
+
+## Scope
+- <Affected area 1>
+- <Affected area 2>
+
+## Requirements
+- <Requirement 1 — synthesized from all sources>
+- <Requirement 2>
+
+## Ambiguities / Open Questions
+- [?] <Question 1 — contradictions or gaps between sources>
+
+## Constraints
+- <Constraint 1>
+```
+
+#### 0.4 — HITL Gate
+
+> **Draft Generated:** `memory/state/draft_YYMMDD.md`
+>
+> Please review the draft. You can:
+> - **Approve** — I will proceed to discovery and planning.
+> - **Edit** — Tell me what to change.
+> - **Reject** — I will discard and let you pick another task.
+>
+> I will not proceed until you give explicit approval.
+
+[STOP] **STOP HERE. Do NOT proceed without human approval.**
 
 ---
 

@@ -18,11 +18,12 @@ Listen for the following user commands and execute the corresponding workflow:
 | Trigger | Action |
 |---|---|
 | `/devos.setup` | Read and execute `.devos/workflows/setup_workflow.md` step by step. Accepts targeted flags (e.g., `/devos.setup mcp`). |
-| `/devos.start` | Read and execute `.devos/workflows/start_workflow.md` step by step. |
-| `/devos.develop` | Read and execute `.devos/workflows/dev_workflow.md` step by step. |
+| `/devos.start` | Read and execute `.devos/workflows/start_workflow.md` step by step. Generates a **Daily Tactical Digest** (`daily_digest.md`) with panoramic context from all sources. Does NOT start development. |
+| `/devos.develop` | Read and execute `.devos/workflows/dev_workflow.md` step by step. Starts with task selection (from the digest or user input), generates a draft, then executes the full development lifecycle. |
 | `/devos.review` | Assume the Reviewer persona from `.devos/system_prompts/reviewer_agent.md` and review the latest state artifact. |
 | `/devos.status` | Scan `.devos/memory/state/` and report all artifacts with their current `phase` from YAML frontmatter. |
 | `/devos.brain` | List all files in `.devos/memory/brain_kb/` and provide a summary of accumulated knowledge. |
+| `/devos.metrics` | Read and execute `.devos/workflows/metrics_workflow.md`. Calculates DORA metrics and writes to `dora.json`. |
 
 ## Core Rules
 

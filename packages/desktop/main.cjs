@@ -28,11 +28,11 @@ function runSyncIntegrations(useWsl = false, engine = 'claude') {
   broadcastCrawlerState();
 
   let command = engine === 'claude' ? 'claude' : 'gemini';
-  let args = ['-p', `Run /devos.daily.`];
+  let args = ['-p', `Run /devos.start`];
   let isShell = true;
   
   if (useWsl && process.platform === 'win32') {
-    args = ['--', 'sh', '-c', `zsh -ic '${command} -p "Run /devos.daily." < /dev/null' || bash -ic '${command} -p "Run /devos.daily." < /dev/null'`];
+    args = ['--', 'sh', '-c', `zsh -ic '${command} -p "Run /devos.start" < /dev/null' || bash -ic '${command} -p "Run /devos.start" < /dev/null'`];
     command = 'wsl';
     isShell = false;
   }
