@@ -33,6 +33,9 @@ The AI will read the Orchestrator rules, discover your MCPs, and perform True Kn
 
 ## 2. The Control Plane (Desktop App)
 
+![DevOS Control Plane Dashboard](https://via.placeholder.com/800x450.png?text=DevOS+Control+Plane+Dashboard)
+*Visualizing the Agnostic Knowledge Fusion pipeline in real-time.*
+
 To view your Tactical Daily Digest and monitor the Crawler's background sync, download the **DevOS Control Plane**:
 
 1. Go to [GitHub Releases](https://github.com/org/devos/releases/latest).
