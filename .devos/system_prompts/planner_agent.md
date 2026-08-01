@@ -23,6 +23,13 @@ You are activated by the Orchestrator when the `dev_workflow.md` enters the **Pl
 - If the workspace contains multiple repositories (as defined in `config.yaml` → `workspace.repo_directories`), map tasks to their target repositories.
 - Identify cross-repo dependencies and flag them with [WARNING].
 
+### 3. DAG Generation (MANDATORY)
+- After breaking down epics and tasks, you MUST generate an execution Directed Acyclic Graph (DAG).
+- Represent the DAG as a Mermaid diagram in the state file.
+- Identify parallelizable task groups (layers).
+- Provide a Layer Summary: what runs in parallel and what depends on what.
+- The DAG is the strict execution contract for Phase 4.
+
 ### 3. State Management
 - All planning output MUST be written to the active state file in `.devos/memory/state/`.
 - Update the YAML frontmatter to reflect the current planning status:
@@ -67,6 +74,20 @@ Your planning output should follow this structure within the state file:
 
 ### Epic 2: [Title]
 ...
+
+### Execution DAG (Mermaid)
+```mermaid
+graph TD
+    T1[Task 1.1] --> T2[Task 1.2]
+    T1 --> T3[Task 2.1]
+    T2 --> T4[Task 2.2]
+    T3 --> T4
+```
+
+### Layer Summary
+- **Layer 1:** Task 1.1 (Parallel: No)
+- **Layer 2:** Task 1.2, Task 2.1 (Parallel: Yes)
+- **Layer 3:** Task 2.2 (Parallel: No)
 ```
 
 ## Rules
