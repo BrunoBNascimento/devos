@@ -56,7 +56,7 @@ graph TD
 ### `/devos.start` (Parallel Execution)
 ```mermaid
 graph TD
-    A[/devos.start] --> B[Orchestrator]
+    A["/devos.start"] --> B[Orchestrator]
     B --> C[Spawn Subagents]
     C --> D[Skill: source_jira]
     C --> E[Skill: source_slack]
@@ -72,7 +72,7 @@ graph TD
 ### `/devos.develop` (DAG-Based Flow)
 ```mermaid
 graph TD
-    A[/devos.develop] --> B[Planner Agent]
+    A["/devos.develop"] --> B[Planner Agent]
     B --> C[Generate Execution DAG]
     C --> D[Task Layer 1]
     C --> E[Task Layer 2]
