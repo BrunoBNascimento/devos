@@ -2,11 +2,30 @@ version: 3.0
 framework: "DevOS - Agentic Workflow"
 
 workspace:
-  # Paths to the repositories this DevOS instance manages. 
-  # For multi-repo orchestrations, point to your external repositories folder or list specific paths.
-  # Examples: ["./"], ["./frontend", "./backend"], ["C:/Users/bruno/Repositories/"]
-  repo_directories: ["./"] 
+  repositories_path: "./repositories"
+  managed_repos: []
+  auto_fetch: true
   ignore_patterns_file: ".devos/.devosignore"
+
+behavior:
+  verbose: false
+  local_first: true
+  auto_kb: true
+  wizard_mode: true
+
+skills:
+  start_sources:
+    - source_jira
+    - source_slack
+    - source_github
+    - source_meetings
+    - source_local_repos
+  parallel_ingestion: true
+
+digests:
+  keep_history: true
+  history_path: ".devos/memory/digests/"
+  track_last_edited: true
 
 knowledge_system:
   router_enabled: true
@@ -225,3 +244,5 @@ paths:
   prompts: ".devos/system_prompts/"
   workflows: ".devos/workflows/"
   state: ".devos/memory/state/"
+  skills: ".devos/skills/"
+  digests: ".devos/memory/digests/"
